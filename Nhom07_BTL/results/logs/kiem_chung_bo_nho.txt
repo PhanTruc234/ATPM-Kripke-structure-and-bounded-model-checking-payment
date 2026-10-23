@@ -1,0 +1,291 @@
+MÔ HÌNH KRIPKE MỨC CÂU LỆNH + BỘ NHỚ — Nhóm 07 (giáo trình mục 3.6; Phụ lục C.5, Phần II, Câu 1)
+Trạng thái = (dòng lệnh CPU sắp chạy, biến, nội dung bộ nhớ, valid_map); mỗi cạnh của R = CPU chạy 1 lệnh.
+Kripke SINH TỰ ĐỘNG bằng BFS; nhãn TÍNH từ bộ nhớ; kiểm chứng bằng ctl_checker + bounded_checker của nhóm.
+
+####################################################################################################
+# H1 — STACK: parse_order_id chép mã đơn vào buffer trên stack
+# Stack frame (giáo trình Hình 2.1, rút gọn): buffer[N] | 4 byte biến kề (K) | 8 byte địa chỉ trả về (R)
+# Đầu vào: mọi độ dài L = 0..24 (môi trường chọn); nội dung = tiền tố của "DH20261015000123-QUA-DAI"
+# (chỉ độ dài quyết định tràn; mọi L > 17 hành xử như nhau ở 2 bản v1 vì strncpy/strnlen đọc tối đa 16/17 byte)
+####################################################################################################
+
+=== H1-v0: mã SpecVerificationLab sinh từ đặc tả v0 — char buffer[16] + strcpy (CÓ LỖI)
+       7 | void parse_order_id(const char *raw_order_id) {
+       8 |     char buffer[16];
+       9 |     strcpy(buffer, raw_order_id);
+      10 |     printf("%s\n", buffer);
+      11 | }
+  |S|=401  |R|=425  S0=['khoi_tao']  đạt tới được=401
+  [1] Deadlock: không có
+  [2] CTL:
+      AG(!buffer_overflow)         -> VI PHẠM
+      AG(!off_by_one)              -> VI PHẠM
+      AG(!ret_overwritten)         -> VI PHẠM
+      AG(!control_hijack)          -> VI PHẠM
+      AG(!oob_read)                -> VI PHẠM
+      AG(!truncated)               -> ĐÚNG
+      AG(!violation)               -> VI PHẠM
+      AF(flow_end)                 -> VI PHẠM
+      EF(copied_ok)                -> ĐÚNG
+      EF(input_rejected)           -> VI PHẠM
+      AG(len_eq_cap -> AF(copied_ok))          -> VI PHẠM  (mã dài đúng 16 ký tự thì được chép nguyên vẹn, không hỏng bộ nhớ)
+      AG(len_gt_cap -> AF(input_rejected))     -> VI PHẠM  (mã dài hơn 16 ký tự thì cuối cùng bị từ chối)
+  [3] BMC (bounded_checker) — completeness threshold CT = 28; k = số lệnh CPU đã chạy
+      AG(!buffer_overflow)         VI PHẠM ở k=18:
+          bước  0  (trạng thái khởi tạo)                                                        buffer[16]=················ | kề=KKKK | ret=RRRRRRRR
+          bước  1  nhận chuỗi L=16: "DH20261015000123"                                          buffer[16]=················ | kề=KKKK | ret=RRRRRRRR
+          bước  2  dòng 9 strcpy(buffer, raw_order_id);  ghi ô [0] = 'D'                        buffer[16]=D··············· | kề=KKKK | ret=RRRRRRRR
+          bước  3  dòng 9 strcpy(buffer, raw_order_id);  ghi ô [1] = 'H'                        buffer[16]=DH·············· | kề=KKKK | ret=RRRRRRRR
+          ...      (lặp tiếp 14 lần, mỗi lần chép 1 byte)
+          bước 18  dòng 9 strcpy(buffer, raw_order_id);  ghi ô [16] = ∅  ← NGOÀI buffer (biến kề) buffer[16]=DH20261015000123 | kề=∅KKK | ret=RRRRRRRR
+      AG(!off_by_one)              VI PHẠM ở k=18
+      AG(!ret_overwritten)         VI PHẠM ở k=22
+      AG(!control_hijack)          VI PHẠM ở k=24:
+          bước  0  (trạng thái khởi tạo)                                                        buffer[16]=················ | kề=KKKK | ret=RRRRRRRR
+          bước  1  nhận chuỗi L=20: "DH20261015000123-QUA"                                      buffer[16]=················ | kề=KKKK | ret=RRRRRRRR
+          bước  2  dòng 9 strcpy(buffer, raw_order_id);  ghi ô [0] = 'D'                        buffer[16]=D··············· | kề=KKKK | ret=RRRRRRRR
+          bước  3  dòng 9 strcpy(buffer, raw_order_id);  ghi ô [1] = 'H'                        buffer[16]=DH·············· | kề=KKKK | ret=RRRRRRRR
+          ...      (lặp tiếp 18 lần, mỗi lần chép 1 byte)
+          bước 22  dòng 9 strcpy(buffer, raw_order_id);  ghi ô [20] = ∅  ← NGOÀI buffer (địa chỉ trả về) buffer[16]=DH20261015000123 | kề=-QUA | ret=∅RRRRRRR
+          bước 23  dòng 10 printf("%s\n", buffer);                                              buffer[16]=DH20261015000123 | kề=-QUA | ret=∅RRRRRRR
+          bước 24  return: địa chỉ trả về đã bị ghi đè → CPU nhảy tới địa chỉ lạ                buffer[16]=DH20261015000123 | kề=-QUA | ret=∅RRRRRRR
+      AG(!oob_read)                VI PHẠM ở k=19
+      AG(!truncated)               AN TOÀN — đã đạt CT ở k=29, không còn trạng thái nào chưa duyệt
+      AG(!violation)               VI PHẠM ở k=18
+
+=== H1-v1-SVL: mã SpecVerificationLab sinh từ đặc tả v1 — char buffer[17] + strncpy
+       7 | void parse_order_id(const char *raw_order_id) {
+       8 |     char buffer[17];
+       9 |     strncpy(buffer, raw_order_id, sizeof(buffer) - 1);
+      10 |     buffer[sizeof(buffer) - 1] = '\0';
+      11 |     printf("%s\n", buffer);
+      12 | }
+  |S|=501  |R|=525  S0=['khoi_tao']  đạt tới được=501
+  [1] Deadlock: không có
+  [2] CTL:
+      AG(!buffer_overflow)         -> ĐÚNG
+      AG(!off_by_one)              -> ĐÚNG
+      AG(!ret_overwritten)         -> ĐÚNG
+      AG(!control_hijack)          -> ĐÚNG
+      AG(!oob_read)                -> ĐÚNG
+      AG(!truncated)               -> VI PHẠM
+      AG(!violation)               -> VI PHẠM
+      AF(flow_end)                 -> ĐÚNG
+      EF(copied_ok)                -> ĐÚNG
+      EF(input_rejected)           -> VI PHẠM
+      AG(len_eq_cap -> AF(copied_ok))          -> ĐÚNG     (mã dài đúng 16 ký tự thì được chép nguyên vẹn, không hỏng bộ nhớ)
+      AG(len_gt_cap -> AF(input_rejected))     -> VI PHẠM  (mã dài hơn 16 ký tự thì cuối cùng bị từ chối)
+  [3] BMC (bounded_checker) — completeness threshold CT = 20; k = số lệnh CPU đã chạy
+      AG(!buffer_overflow)         AN TOÀN — đã đạt CT ở k=21, không còn trạng thái nào chưa duyệt
+      AG(!off_by_one)              AN TOÀN — đã đạt CT ở k=21, không còn trạng thái nào chưa duyệt
+      AG(!ret_overwritten)         AN TOÀN — đã đạt CT ở k=21, không còn trạng thái nào chưa duyệt
+      AG(!control_hijack)          AN TOÀN — đã đạt CT ở k=21, không còn trạng thái nào chưa duyệt
+      AG(!oob_read)                AN TOÀN — đã đạt CT ở k=21, không còn trạng thái nào chưa duyệt
+      AG(!truncated)               VI PHẠM ở k=20:
+          bước  0  (trạng thái khởi tạo)                                                        buffer[17]=················· | kề=KKKK | ret=RRRRRRRR
+          bước  1  nhận chuỗi L=17: "DH20261015000123-"                                         buffer[17]=················· | kề=KKKK | ret=RRRRRRRR
+          bước  2  dòng 9 strncpy(buffer, raw_order_id, sizeof(buffer) - 1);  ghi ô [0] = 'D'   buffer[17]=D················ | kề=KKKK | ret=RRRRRRRR
+          bước  3  dòng 9 strncpy(buffer, raw_order_id, sizeof(buffer) - 1);  ghi ô [1] = 'H'   buffer[17]=DH··············· | kề=KKKK | ret=RRRRRRRR
+          ...      (lặp tiếp 13 lần, mỗi lần chép 1 byte)
+          bước 17  dòng 9 strncpy(buffer, raw_order_id, sizeof(buffer) - 1);  ghi ô [15] = '3'  buffer[17]=DH20261015000123· | kề=KKKK | ret=RRRRRRRR
+          bước 18  dòng 10 buffer[sizeof(buffer) - 1] = '\0';  ghi ô [16] = ∅                   buffer[17]=DH20261015000123∅ | kề=KKKK | ret=RRRRRRRR
+          bước 19  dòng 11 printf("%s\n", buffer);                                              buffer[17]=DH20261015000123∅ | kề=KKKK | ret=RRRRRRRR
+          bước 20  return bình thường                                                           buffer[17]=DH20261015000123∅ | kề=KKKK | ret=RRRRRRRR
+      AG(!violation)               VI PHẠM ở k=20
+
+=== H1-v1-nhóm: bản sửa của nhóm (M1-v1b) — buffer[17] + strnlen + từ chối
+       7 | void parse_order_id(const char *raw_order_id) {
+       8 |     char buffer[17];
+       9 |     size_t len = strnlen(raw_order_id, 17);
+      10 |     if (len > 16) return;   /* từ chối mã dài hơn 16 ký tự */
+      11 |     memcpy(buffer, raw_order_id, len + 1);
+      12 |     printf("%s\n", buffer);
+      13 | }
+  |S|=263  |R|=287  S0=['khoi_tao']  đạt tới được=263
+  [1] Deadlock: không có
+  [2] CTL:
+      AG(!buffer_overflow)         -> ĐÚNG
+      AG(!off_by_one)              -> ĐÚNG
+      AG(!ret_overwritten)         -> ĐÚNG
+      AG(!control_hijack)          -> ĐÚNG
+      AG(!oob_read)                -> ĐÚNG
+      AG(!truncated)               -> ĐÚNG
+      AG(!violation)               -> ĐÚNG
+      AF(flow_end)                 -> ĐÚNG
+      EF(copied_ok)                -> ĐÚNG
+      EF(input_rejected)           -> ĐÚNG
+      AG(len_eq_cap -> AF(copied_ok))          -> ĐÚNG     (mã dài đúng 16 ký tự thì được chép nguyên vẹn, không hỏng bộ nhớ)
+      AG(len_gt_cap -> AF(input_rejected))     -> ĐÚNG     (mã dài hơn 16 ký tự thì cuối cùng bị từ chối)
+  [3] BMC (bounded_checker) — completeness threshold CT = 22; k = số lệnh CPU đã chạy
+      AG(!buffer_overflow)         AN TOÀN — đã đạt CT ở k=23, không còn trạng thái nào chưa duyệt
+      AG(!off_by_one)              AN TOÀN — đã đạt CT ở k=23, không còn trạng thái nào chưa duyệt
+      AG(!ret_overwritten)         AN TOÀN — đã đạt CT ở k=23, không còn trạng thái nào chưa duyệt
+      AG(!control_hijack)          AN TOÀN — đã đạt CT ở k=23, không còn trạng thái nào chưa duyệt
+      AG(!oob_read)                AN TOÀN — đã đạt CT ở k=23, không còn trạng thái nào chưa duyệt
+      AG(!truncated)               AN TOÀN — đã đạt CT ở k=23, không còn trạng thái nào chưa duyệt
+      AG(!violation)               AN TOÀN — đã đạt CT ở k=23, không còn trạng thái nào chưa duyệt
+
+####################################################################################################
+# H6 — HEAP: worker callback và worker timeout cùng đóng 1 phiên PaymentSession *s
+# Bộ nhớ heap theo dõi bằng valid_map (giáo trình mục 3.6): valid_map[p] = 1 khi p đã cấp phát và chưa free.
+# Mọi thứ tự xen kẽ 2 worker do BFS sinh ra; dừng ở hành vi không xác định đầu tiên (như ASan/CBMC).
+####################################################################################################
+
+=== H6-v0: không khóa, memset rồi free (CÓ LỖI) — mã của M6-v0
+      (V = PAID ở worker callback, CANCELLED ở worker timeout; 2 worker chạy song song)
+       1 | s->status = V;
+       2 | memset(s->card, 0, 16);
+       3 | free(s->card);
+       4 | free(s);
+       5 | return;
+  |S|=137  |R|=208  S0=['cb1_to1_k0_mo_s1c1t1']  đạt tới được=137
+  [1] Deadlock: không có
+  [2] CTL:
+      AG(!race)                    -> VI PHẠM
+      AG(!double_free)             -> VI PHẠM
+      AG(!use_after_free)          -> VI PHẠM
+      AG(!secret_residue)          -> VI PHẠM
+      AG(!violation)               -> VI PHẠM
+      AF(session_freed)            -> VI PHẠM
+      EF(cb_locked)                -> ĐÚNG
+      EF(to_locked)                -> ĐÚNG
+      Mutex(cb_locked, to_locked)  -> VI PHẠM tại 46 trạng thái, vd cb2_to2_k0_huy_s1c1t1
+      AG(!(cb_locked & to_locked))             -> VI PHẠM  (mutex viết dạng CTL)
+      AG(paid -> AG(!cancelled))               -> VI PHẠM  (đơn đã ghi PAID thì không bao giờ bị ghi đè thành CANCELLED)
+  [3] BMC (bounded_checker) — completeness threshold CT = 8; k = số lệnh CPU đã chạy
+      AG(!race)                    VI PHẠM ở k=2:
+          bước  0  (trạng thái khởi tạo)                                                        [CB:1 TO:1 | khóa=– | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  1  TIMEOUT  dòng 1: s->status = CANCELLED;                                      [CB:1 TO:2 | khóa=– | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  2  CALLBACK dòng 1: s->status = PAID;                                           [CB:2 TO:2 | khóa=– | status=PAID | valid_map: s=1 card=1 | card CÒN số thẻ]
+      AG(!double_free)             VI PHẠM ở k=6:
+          bước  0  (trạng thái khởi tạo)                                                        [CB:1 TO:1 | khóa=– | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  1  TIMEOUT  dòng 1: s->status = CANCELLED;                                      [CB:1 TO:2 | khóa=– | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  2  TIMEOUT  dòng 2: memset(s->card, 0, 16);                                     [CB:1 TO:3 | khóa=– | status=CANCELLED | valid_map: s=1 card=1 | card đã xóa]
+          bước  3  CALLBACK dòng 1: s->status = PAID;                                           [CB:2 TO:3 | khóa=– | status=PAID | valid_map: s=1 card=1 | card đã xóa]
+          bước  4  CALLBACK dòng 2: memset(s->card, 0, 16);                                     [CB:3 TO:3 | khóa=– | status=PAID | valid_map: s=1 card=1 | card đã xóa]
+          bước  5  TIMEOUT  dòng 3: free(s->card);                                              [CB:3 TO:4 | khóa=– | status=PAID | valid_map: s=1 card=0 | card đã xóa]
+          bước  6  CALLBACK dòng 3: free(s->card);  ⇒ FREE LẦN 2 (double free)                  [CB:3 TO:4 | khóa=– | status=PAID | valid_map: s=1 card=0 | card đã xóa]
+      AG(!use_after_free)          VI PHẠM ở k=5:
+          bước  0  (trạng thái khởi tạo)                                                        [CB:1 TO:1 | khóa=– | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  1  TIMEOUT  dòng 1: s->status = CANCELLED;                                      [CB:1 TO:2 | khóa=– | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  2  TIMEOUT  dòng 2: memset(s->card, 0, 16);                                     [CB:1 TO:3 | khóa=– | status=CANCELLED | valid_map: s=1 card=1 | card đã xóa]
+          bước  3  TIMEOUT  dòng 3: free(s->card);                                              [CB:1 TO:4 | khóa=– | status=CANCELLED | valid_map: s=1 card=0 | card đã xóa]
+          bước  4  TIMEOUT  dòng 4: free(s);                                                    [CB:1 TO:5 | khóa=– | status=CANCELLED | valid_map: s=0 card=0 | card đã xóa]
+          bước  5  CALLBACK dòng 1: s->status = PAID;  ⇒ DÙNG VÙNG ĐÃ FREE (use-after-free)     [CB:1 TO:5 | khóa=– | status=CANCELLED | valid_map: s=0 card=0 | card đã xóa]
+      AG(!secret_residue)          VI PHẠM ở k=3:
+          bước  0  (trạng thái khởi tạo)                                                        [CB:1 TO:1 | khóa=– | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  1  TIMEOUT  dòng 1: s->status = CANCELLED;                                      [CB:1 TO:2 | khóa=– | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  2  TIMEOUT  dòng 2: memset(s->card, 0, 16);  ← trình biên dịch đã BỎ lệnh này   [CB:1 TO:3 | khóa=– | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  3  TIMEOUT  dòng 3: free(s->card);                                              [CB:1 TO:4 | khóa=– | status=CANCELLED | valid_map: s=1 card=0 | card CÒN số thẻ]
+      AG(!violation)               VI PHẠM ở k=2
+
+=== H6-v1a: CHỈ thêm mutex (phiên s do bộ quản lý phiên giải phóng sau khi 2 worker xong)
+      (V = PAID ở worker callback, CANCELLED ở worker timeout; 2 worker chạy song song)
+       1 | lock(&s->mtx);
+       2 | s->status = V;
+       3 | memset(s->card, 0, 16);
+       4 | free(s->card);
+       5 | unlock(&s->mtx);
+       6 | return;
+  |S|=45  |R|=60  S0=['cb1_to1_k0_mo_s1c1t1']  đạt tới được=45
+  [1] Deadlock: không có
+  [2] CTL:
+      AG(!race)                    -> ĐÚNG
+      AG(!double_free)             -> ĐÚNG
+      AG(!use_after_free)          -> VI PHẠM
+      AG(!secret_residue)          -> VI PHẠM
+      AG(!violation)               -> VI PHẠM
+      AF(session_freed)            -> VI PHẠM
+      EF(cb_locked)                -> ĐÚNG
+      EF(to_locked)                -> ĐÚNG
+      Mutex(cb_locked, to_locked)  -> ĐÚNG
+      AG(!(cb_locked & to_locked))             -> ĐÚNG     (mutex viết dạng CTL)
+      AG(paid -> AG(!cancelled))               -> VI PHẠM  (đơn đã ghi PAID thì không bao giờ bị ghi đè thành CANCELLED)
+  [3] BMC (bounded_checker) — completeness threshold CT = 9; k = số lệnh CPU đã chạy
+      AG(!race)                    AN TOÀN — đã đạt CT ở k=10, không còn trạng thái nào chưa duyệt
+      AG(!double_free)             AN TOÀN — đã đạt CT ở k=10, không còn trạng thái nào chưa duyệt
+      AG(!use_after_free)          VI PHẠM ở k=8:
+          bước  0  (trạng thái khởi tạo)                                                        [CB:1 TO:1 | khóa=– | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  1  TIMEOUT  dòng 1: lock(&s->mtx);                                              [CB:1 TO:2 | khóa=TO | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  2  TIMEOUT  dòng 2: s->status = CANCELLED;                                      [CB:1 TO:3 | khóa=TO | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  3  TIMEOUT  dòng 3: memset(s->card, 0, 16);                                     [CB:1 TO:4 | khóa=TO | status=CANCELLED | valid_map: s=1 card=1 | card đã xóa]
+          bước  4  TIMEOUT  dòng 4: free(s->card);                                              [CB:1 TO:5 | khóa=TO | status=CANCELLED | valid_map: s=1 card=0 | card đã xóa]
+          bước  5  TIMEOUT  dòng 5: unlock(&s->mtx);                                            [CB:1 TO:6 | khóa=– | status=CANCELLED | valid_map: s=1 card=0 | card đã xóa]
+          bước  6  CALLBACK dòng 1: lock(&s->mtx);                                              [CB:2 TO:6 | khóa=CB | status=CANCELLED | valid_map: s=1 card=0 | card đã xóa]
+          bước  7  CALLBACK dòng 2: s->status = PAID;                                           [CB:3 TO:6 | khóa=CB | status=PAID | valid_map: s=1 card=0 | card đã xóa]
+          bước  8  CALLBACK dòng 3: memset(s->card, 0, 16);  ⇒ DÙNG VÙNG ĐÃ FREE (use-after-free) [CB:3 TO:6 | khóa=CB | status=PAID | valid_map: s=1 card=0 | card đã xóa]
+      AG(!secret_residue)          VI PHẠM ở k=4:
+          bước  0  (trạng thái khởi tạo)                                                        [CB:1 TO:1 | khóa=– | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  1  TIMEOUT  dòng 1: lock(&s->mtx);                                              [CB:1 TO:2 | khóa=TO | status=OPEN | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  2  TIMEOUT  dòng 2: s->status = CANCELLED;                                      [CB:1 TO:3 | khóa=TO | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  3  TIMEOUT  dòng 3: memset(s->card, 0, 16);  ← trình biên dịch đã BỎ lệnh này   [CB:1 TO:4 | khóa=TO | status=CANCELLED | valid_map: s=1 card=1 | card CÒN số thẻ]
+          bước  4  TIMEOUT  dòng 4: free(s->card);                                              [CB:1 TO:5 | khóa=TO | status=CANCELLED | valid_map: s=1 card=0 | card CÒN số thẻ]
+      AG(!violation)               VI PHẠM ở k=4
+
+=== H6-v1b: bản sửa của nhóm — mutex + kiểm tra CLOSED + explicit_bzero — mã của M6-v1
+      (V = PAID ở worker callback, CANCELLED ở worker timeout; 2 worker chạy song song)
+       1 | lock(&s->mtx);
+       2 | if (s->status == CLOSED) goto dòng 7;
+       3 | s->status = V;
+       4 | explicit_bzero(s->card, 16);
+       5 | free(s->card);
+       6 | s->status = CLOSED;
+       7 | unlock(&s->mtx);
+       8 | return;
+  |S|=29  |R|=37  S0=['cb1_to1_k0_mo_s1c1t1']  đạt tới được=29
+  [1] Deadlock: không có
+  [2] CTL:
+      AG(!race)                    -> ĐÚNG
+      AG(!double_free)             -> ĐÚNG
+      AG(!use_after_free)          -> ĐÚNG
+      AG(!secret_residue)          -> ĐÚNG
+      AG(!violation)               -> ĐÚNG
+      AF(session_freed)            -> ĐÚNG
+      EF(cb_locked)                -> ĐÚNG
+      EF(to_locked)                -> ĐÚNG
+      Mutex(cb_locked, to_locked)  -> ĐÚNG
+      AG(!(cb_locked & to_locked))             -> ĐÚNG     (mutex viết dạng CTL)
+      AG(paid -> AG(!cancelled))               -> ĐÚNG     (đơn đã ghi PAID thì không bao giờ bị ghi đè thành CANCELLED)
+  [3] BMC (bounded_checker) — completeness threshold CT = 12; k = số lệnh CPU đã chạy
+      AG(!race)                    AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!double_free)             AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!use_after_free)          AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!secret_residue)          AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!violation)               AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+
+####################################################################################################
+# TÓM TẮT (k = độ dài phản ví dụ ngắn nhất, tính bằng số lệnh CPU)
+####################################################################################################
+
+  H1 — stack
+  Thuộc tính                                            v0        v1-SVL       v1-nhóm
+  AG(!buffer_overflow)                        VI PHẠM k=18          ĐÚNG          ĐÚNG
+  AG(!off_by_one)                             VI PHẠM k=18          ĐÚNG          ĐÚNG
+  AG(!ret_overwritten)                        VI PHẠM k=22          ĐÚNG          ĐÚNG
+  AG(!control_hijack)                         VI PHẠM k=24          ĐÚNG          ĐÚNG
+  AG(!oob_read)                               VI PHẠM k=19          ĐÚNG          ĐÚNG
+  AG(!truncated)                                      ĐÚNG  VI PHẠM k=20          ĐÚNG
+  AG(!violation)                              VI PHẠM k=18  VI PHẠM k=20          ĐÚNG
+  AF(flow_end)                                     VI PHẠM          ĐÚNG          ĐÚNG
+  EF(copied_ok)                                       ĐÚNG          ĐÚNG          ĐÚNG
+  EF(input_rejected)                               VI PHẠM       VI PHẠM          ĐÚNG
+  AG(len_eq_cap -> AF(copied_ok))                  VI PHẠM          ĐÚNG          ĐÚNG
+  AG(len_gt_cap -> AF(input_rejected))             VI PHẠM       VI PHẠM          ĐÚNG
+
+  H6 — heap
+  Thuộc tính                                            v0           v1a           v1b
+  AG(!race)                                    VI PHẠM k=2          ĐÚNG          ĐÚNG
+  AG(!double_free)                             VI PHẠM k=6          ĐÚNG          ĐÚNG
+  AG(!use_after_free)                          VI PHẠM k=5   VI PHẠM k=8          ĐÚNG
+  AG(!secret_residue)                          VI PHẠM k=3   VI PHẠM k=4          ĐÚNG
+  AG(!violation)                               VI PHẠM k=2   VI PHẠM k=4          ĐÚNG
+  AF(session_freed)                                VI PHẠM       VI PHẠM          ĐÚNG
+  EF(cb_locked)                                       ĐÚNG          ĐÚNG          ĐÚNG
+  EF(to_locked)                                       ĐÚNG          ĐÚNG          ĐÚNG
+  Mutex(cb_locked, to_locked)                      VI PHẠM          ĐÚNG          ĐÚNG
+  AG(!(cb_locked & to_locked))                     VI PHẠM          ĐÚNG          ĐÚNG
+  AG(paid -> AG(!cancelled))                       VI PHẠM       VI PHẠM          ĐÚNG
+
+  NHẬN XÉT H6: chỉ thêm mutex (v1a) thì hết tranh chấp, nhưng worker đến sau vẫn memset vùng card đã
+  free (use-after-free). Mô hình kết hợp chỉ có đường tới h6_double_free/h6_uaf qua h6_tranh_chap nên
+  không thấy điều này; mô hình mức bộ nhớ cho thấy vì sao bản sửa cần thêm kiểm tra status == CLOSED.

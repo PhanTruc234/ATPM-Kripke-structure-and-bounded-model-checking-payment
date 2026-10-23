@@ -1,0 +1,246 @@
+BMC BẰNG Z3 TRÊN MÔ HÌNH KRIPKE MỨC BỘ NHỚ — Nhóm 07
+Trạng thái = (pc, biến, từng ô nhớ dạng bit-vector). Đầu vào là biến tự do: Z3 xét MỌI đầu vào cùng lúc.
+Bad(s) là mệnh đề nguyên tử tính từ bộ nhớ. VI PHẠM = Z3 tìm được đường đi k bước tới trạng thái xấu.
+
+==============================================================================================================
+H1 — v0: strcpy(r->order_id, raw) với order_id[16] (CÓ LỖI)
+==============================================================================================================
+    11 | strcpy(r->order_id, raw);
+    12 | return 0;
+  Cấu trúc Kripke K = (S, S0, R, L):
+    S  : s = (pc, i, len, m[0..31]) — m[j] là 1 byte (BitVec 8) của khung stack: order_id[0..15] | total[16..19] | status[20..23] | ret[24..31]
+    S0 : pc = 11, i = 0, order_id = rác 0xCC, total = 489000 (28 76 07 00), status = 0, ret = 0x00007FF6A1B2C3D4; đầu vào raw[0..L] TỰ DO: 0 ≤ L ≤ 31, ký tự 0-9, A-Z, '-', raw[L] = '\0'
+    R  : pc=11: m[i] := raw[i]; nếu raw[i]=0 thì pc:=12 ngược lại i:=i+1   (strcpy = mỗi bước ghi 1 byte)
+         pc=12: pc := NHẢY_LẠ nếu m[ret] ≠ ret ban đầu, ngược lại XONG
+    L  : tran_bo_dem ≡ ∃ j ngoài order_id: m[j] ≠ m0[j];  total_sai ≡ int32(m[total]) ≠ 489000;  ret_bi_ghi_de ≡ m[ret] ≠ ret ban đầu;  nhay_la ≡ pc = NHẢY_LẠ
+  (Z3 giải xong trong 1.5 giây)
+  Kết quả BMC (k = số lệnh CPU đã chạy):
+    AG(!tran_bo_dem    ) VI PHẠM ở k = 17   (có byte NGOÀI order_id bị đổi)
+      đầu vào Z3 chọn: chuỗi raw = "DH20261015000123" (L = 16 ký tự = 17 byte kể cả \0)
+      phát lại trên chương trình C thật:  build\tt_v0.exe 1 DH20261015000123
+      s0   pc=dòng 11  order_id=CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           L(s0) = {-}   {'i': 0}
+      s1   pc=dòng 11  order_id=[44] CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [0] = 44
+           L(s1) = {-}   {'i': 1}
+      s2   pc=dòng 11  order_id=44 [48] CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [1] = 48
+           L(s2) = {-}   {'i': 2}
+        ...  (bỏ qua 12 bước giữa — xem đủ trong file HTML)
+      s15  pc=dòng 11  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 [32] CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [14] = 32
+           L(s15) = {-}   {'i': 15}
+      s16  pc=dòng 11  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 [33] | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [15] = 33
+           L(s16) = {-}   {'i': 16}
+      s17  pc=dòng 12  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 33 | total=[00] 76 07 00 = 488.960 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [16] = 00
+           L(s17) = {tran_bo_dem,total_sai}   {'i': 16}
+    AG(!total_sai      ) VI PHẠM ở k = 17   (ô total (tiền đơn) ≠ 489000 — mất độ chính xác)
+      (cùng phản ví dụ với AG(!tran_bo_dem) ở trên)
+    AG(!ret_bi_ghi_de  ) VI PHẠM ở k = 25   (ô địa chỉ trả về bị đổi)
+      đầu vào Z3 chọn: chuỗi raw = "DH20261015000123-QUA-DAI" (L = 24 ký tự = 25 byte kể cả \0)
+      phát lại trên chương trình C thật:  build\tt_v0.exe 1 DH20261015000123-QUA-DAI
+      s0   pc=dòng 11  order_id=CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           L(s0) = {-}   {'i': 0}
+      s1   pc=dòng 11  order_id=[44] CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [0] = 44
+           L(s1) = {-}   {'i': 1}
+      s2   pc=dòng 11  order_id=44 [48] CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [1] = 48
+           L(s2) = {-}   {'i': 2}
+        ...  (bỏ qua 20 bước giữa — xem đủ trong file HTML)
+      s23  pc=dòng 11  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 33 | total=2D 51 55 41 = 1.096.110.381 VND | status=2D 44 [41] 00 = 4277293 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [22] = 41
+           L(s23) = {tran_bo_dem,total_sai}   {'i': 23}
+      s24  pc=dòng 11  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 33 | total=2D 51 55 41 = 1.096.110.381 VND | status=2D 44 41 [49] = 1229014061 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [23] = 49
+           L(s24) = {tran_bo_dem,total_sai}   {'i': 24}
+      s25  pc=dòng 12  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 33 | total=2D 51 55 41 = 1.096.110.381 VND | status=2D 44 41 49 = 1229014061 | ret=[00] C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [24] = 00
+           L(s25) = {tran_bo_dem,total_sai,ret_bi_ghi_de}   {'i': 24}
+    AG(!nhay_la        ) VI PHẠM ở k = 26   (CPU return về địa chỉ do đầu vào quyết định)
+      đầu vào Z3 chọn: chuỗi raw = "DH20261015000123-QUA-DAI" (L = 24 ký tự = 25 byte kể cả \0)
+      phát lại trên chương trình C thật:  build\tt_v0.exe 1 DH20261015000123-QUA-DAI
+      s0   pc=dòng 11  order_id=CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           L(s0) = {-}   {'i': 0}
+      s1   pc=dòng 11  order_id=[44] CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [0] = 44
+           L(s1) = {-}   {'i': 1}
+      s2   pc=dòng 11  order_id=44 [48] CC CC CC CC CC CC CC CC CC CC CC CC CC CC | total=28 76 07 00 = 489.000 VND | status=00 00 00 00 = 0 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [1] = 48
+           L(s2) = {-}   {'i': 2}
+        ...  (bỏ qua 21 bước giữa — xem đủ trong file HTML)
+      s24  pc=dòng 11  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 33 | total=2D 51 55 41 = 1.096.110.381 VND | status=2D 44 41 [49] = 1229014061 | ret=D4 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [23] = 49
+           L(s24) = {tran_bo_dem,total_sai}   {'i': 24}
+      s25  pc=dòng 12  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 33 | total=2D 51 55 41 = 1.096.110.381 VND | status=2D 44 41 49 = 1229014061 | ret=[00] C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 11: strcpy(r->order_id, raw);  — ghi ô [24] = 00
+           L(s25) = {tran_bo_dem,total_sai,ret_bi_ghi_de}   {'i': 24}
+      s26  pc=NHẢY_LẠ  order_id=44 48 32 30 32 36 31 30 31 35 30 30 30 31 32 33 | total=2D 51 55 41 = 1.096.110.381 VND | status=2D 44 41 49 = 1229014061 | ret=00 C3 B2 A1 F6 7F 00 00
+           ↑ R: dòng 12: return 0;
+           L(s26) = {tran_bo_dem,total_sai,ret_bi_ghi_de,nhay_la}   {'i': 24}
+
+==============================================================================================================
+H1 — v1: buffer 17 byte + strnlen + từ chối (bản sửa)
+==============================================================================================================
+    11 | size_t len = strnlen(raw, 17);
+    12 | if (len > 16) return -1;      /* từ chối */
+    13 | memcpy(r->order_id, raw, len + 1);
+    14 | return 0;
+  Cấu trúc Kripke K = (S, S0, R, L):
+    S  : s = (pc, i, len, m[0..39]) — m[j] là 1 byte (BitVec 8) của khung stack: order_id[0..16] | total[20..23] | status[24..27] | ret[32..39]
+    S0 : pc = 11, i = 0, order_id = rác 0xCC, total = 489000 (28 76 07 00), status = 0, ret = 0x00007FF6A1B2C3D4; đầu vào raw[0..L] TỰ DO: 0 ≤ L ≤ 39, ký tự 0-9, A-Z, '-', raw[L] = '\0'
+    R  : pc=11: len := min(L, 17); pc:=12      (strnlen chỉ ĐỌC)
+         pc=12: nếu len > 16 thì pc:=TỪ_CHỐI ngược lại pc:=13
+         pc=13: m[i] := raw[i]; nếu i = len thì pc:=14 ngược lại i:=i+1   (memcpy len+1 byte)
+         pc=14: pc := NHẢY_LẠ nếu m[ret] đổi, ngược lại XONG
+    L  : tran_bo_dem ≡ ∃ j ngoài order_id: m[j] ≠ m0[j];  total_sai ≡ int32(m[total]) ≠ 489000;  ret_bi_ghi_de ≡ m[ret] ≠ ret ban đầu;  nhay_la ≡ pc = NHẢY_LẠ
+  (Z3 giải xong trong 0.8 giây)
+  Kết quả BMC (k = số lệnh CPU đã chạy):
+    AG(!tran_bo_dem    ) AN TOÀN — k = 20: I ∧ T^20 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 20
+    AG(!total_sai      ) AN TOÀN — k = 20: I ∧ T^20 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 20
+    AG(!ret_bi_ghi_de  ) AN TOÀN — k = 20: I ∧ T^20 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 20
+    AG(!nhay_la        ) AN TOÀN — k = 20: I ∧ T^20 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 20
+
+==============================================================================================================
+H3 — v0: int32_t total; total += dong[i] (CÓ LỖI)
+==============================================================================================================
+    21 | for (i = 0; i < n; i++) total += dong[i];
+    24 | return total;
+  Cấu trúc Kripke K = (S, S0, R, L):
+    S  : s = (pc, i, total, dung) — total là ô nhớ 32 bit có dấu, chỉ chứa được [-2^31, 2^31 - 1]; dung là BIẾN MA giữ tổng toán học, chỉ để so sánh (không có trong chương trình)
+    S0 : pc = 21, i = 0, total = 0, dung = 0; đầu vào TỰ DO: 1 ≤ n ≤ 100, mỗi dong[i] ∈ [0, 50.000.000] (CON-03) — mỗi dòng chỉ đọc 1 lần nên mỗi lần đọc là 1 biến tự do của Z3
+    R  : pc=21: nếu i < n thì total := (total + dong[i]) quay vòng mod 2^32 (lệnh add của CPU), dung := dung + dong[i], i := i + 1; ngược lại pc := 24
+         pc=24: pc := XONG
+    L  : mat_chinh_xac ≡ giá trị trong ô total ≠ dung (ô nhớ không còn chứa đúng số tiền);  tong_am ≡ total < 0
+  (Z3 giải xong trong 7.6 giây)
+  Kết quả BMC (k = số lệnh CPU đã chạy):
+    AG(!mat_chinh_xac  ) VI PHẠM ở k = 43   (ô total không còn chứa đúng tổng tiền)
+      đầu vào Z3 chọn: n = 43
+      đầu vào Z3 chọn: dong[0..42] = 50.000.000, 50.000.000, 50.000.000, 50.000.000, ...
+      đầu vào Z3 chọn: tổng toán học = 2.150.000.000
+      phát lại trên chương trình C thật:  build\tt_v0.exe 3 50000000 43
+      s0   pc=dòng 21  total=00 00 00 00 = 0
+           L(s0) = {-}   {'i': 0, 'dung (biến ma)': '0'}
+      s1   pc=dòng 21  total=[80] [F0] [FA] [02] = 50.000.000
+           ↑ R: dòng 21: total += dong[0]   (dong[0] = 50.000.000)
+           L(s1) = {-}   {'i': 1, 'dung (biến ma)': '50.000.000'}
+      s2   pc=dòng 21  total=[00] [E1] [F5] [05] = 100.000.000
+           ↑ R: dòng 21: total += dong[1]   (dong[1] = 50.000.000)
+           L(s2) = {-}   {'i': 2, 'dung (biến ma)': '100.000.000'}
+        ...  (bỏ qua 38 bước giữa — xem đủ trong file HTML)
+      s41  pc=dòng 21  total=[80] [84] [30] [7A] = 2.050.000.000
+           ↑ R: dòng 21: total += dong[40]   (dong[40] = 50.000.000)
+           L(s41) = {-}   {'i': 41, 'dung (biến ma)': '2.050.000.000'}
+      s42  pc=dòng 21  total=[00] [75] [2B] [7D] = 2.100.000.000
+           ↑ R: dòng 21: total += dong[41]   (dong[41] = 50.000.000)
+           L(s42) = {-}   {'i': 42, 'dung (biến ma)': '2.100.000.000'}
+      s43  pc=dòng 21  total=[80] [65] [26] [80] = -2.144.967.296
+           ↑ R: dòng 21: total += dong[42]   (dong[42] = 50.000.000)
+           L(s43) = {mat_chinh_xac,tong_am}   {'i': 43, 'dung (biến ma)': '2.150.000.000'}
+    AG(!tong_am        ) VI PHẠM ở k = 43   (tổng tiền âm)
+      (cùng phản ví dụ với AG(!mat_chinh_xac) ở trên)
+
+==============================================================================================================
+H3 — v1: int64_t total + kiểm tra hạn mức trước khi cộng (bản sửa)
+==============================================================================================================
+    21 | for (i = 0; i < n; i++) { if (total + dong[i] > HAN_MUC) return TU_CHOI; total += dong[i]; }
+    24 | return total;
+  Cấu trúc Kripke K = (S, S0, R, L):
+    S  : s = (pc, i, total, dung) — total là ô nhớ 64 bit có dấu, chỉ chứa được [-2^63, 2^63 - 1]; dung là BIẾN MA giữ tổng toán học, chỉ để so sánh (không có trong chương trình)
+    S0 : pc = 21, i = 0, total = 0, dung = 0; đầu vào TỰ DO: 1 ≤ n ≤ 100, mỗi dong[i] ∈ [0, 50.000.000] (CON-03) — mỗi dòng chỉ đọc 1 lần nên mỗi lần đọc là 1 biến tự do của Z3
+    R  : pc=21: nếu i ≥ n thì pc:=24; nếu total + dong[i] > 2.000.000.000 thì pc:=TỪ_CHỐI; ngược lại total := (total + dong[i]) mod 2^64, dung := dung + dong[i], i := i + 1
+         pc=24: pc := XONG
+    L  : mat_chinh_xac ≡ giá trị trong ô total ≠ dung (ô nhớ không còn chứa đúng số tiền);  tong_am ≡ total < 0
+  (Z3 giải xong trong 8.3 giây)
+  Kết quả BMC (k = số lệnh CPU đã chạy):
+    AG(!mat_chinh_xac  ) AN TOÀN — BMC không thấy lỗi tới k = 45; chứng minh quy nạp với Inv(s) ≡ total = dung ∧ 0 ≤ total ≤ 2.000.000.000 ∧ i ≥ 0 cho thấy AG(!mat_chinh_xac) đúng với MỌI độ dài đường đi
+    AG(!tong_am        ) AN TOÀN — BMC không thấy lỗi tới k = 45; chứng minh quy nạp với Inv(s) ≡ total = dung ∧ 0 ≤ total ≤ 2.000.000.000 ∧ i ≥ 0 cho thấy AG(!tong_am) đúng với MỌI độ dài đường đi
+      Chứng minh quy nạp với bất biến Inv(s) ≡ total = dung ∧ 0 ≤ total ≤ 2.000.000.000 ∧ i ≥ 0:
+        (1) I ⇒ Inv            : ĐÚNG (Z3: I ∧ ¬Inv UNSAT)
+        (2) Inv ∧ T ⇒ Inv'     : ĐÚNG (Z3: Inv ∧ T ∧ ¬Inv' UNSAT)
+        (3) Inv ⇒ ¬mat_chinh_xac: ĐÚNG (Z3: Inv ∧ mat_chinh_xac UNSAT)
+        (3) Inv ⇒ ¬tong_am      : ĐÚNG (Z3: Inv ∧ tong_am UNSAT)
+        => (1)(2)(3) đều đúng: thuộc tính đúng ở mọi trạng thái đạt tới được, không cần duyệt hết k
+
+==============================================================================================================
+H6 — v0: không khóa, memset rồi free 2 lần (CÓ LỖI)
+==============================================================================================================
+     1 | s->status = V;
+     2 | memset(s->card, 0, 16);
+     3 | free(s->card);
+     4 | free(s);
+     5 | return;
+  Cấu trúc Kripke K = (S, S0, R, L):
+    S  : s = (pcC, pcT, khóa, status, valid_map[s], valid_map[card], card còn số thẻ, lỗi) — valid_map[p] = 1 khi vùng heap p đã cấp phát và chưa free (giáo trình mục 3.6)
+    S0 : pcC = pcT = 1, khóa trống, status = OPEN, valid_map[s] = valid_map[card] = 1, card chứa số thẻ
+    R  : mỗi bước BỘ LẬP LỊCH chọn C hoặc T (biến tự do chon@k của Z3) chạy MỘT lệnh:
+           dòng 1: s->status = V;
+           dòng 2: memset(s->card, 0, 16);
+           dòng 3: free(s->card);
+           dòng 4: free(s);
+           free(p) khi valid_map[p] = 0 -> lỗi double_free; đọc/ghi *p khi valid_map[p] = 0 -> use_after_free
+           memset ngay trước free có thể bị trình biên dịch BỎ (biến tự do bo@k)
+    L  : race ≡ cả C và T cùng ở giữa thao tác trên phiên;  double_free, use_after_free ≡ lệnh vừa chạy vi phạm valid_map;  secret_residue ≡ valid_map[card] = 0 ∧ card còn số thẻ
+  (Z3 giải xong trong 0.1 giây)
+  Kết quả BMC (k = số lệnh CPU đã chạy):
+    AG(!race           ) VI PHẠM ở k = 2   (C và T cùng đang thao tác trên phiên)
+      phát lại trên chương trình C thật:  build\tt_v0.exe 4 CT
+      s0   pcC=dòng 1  pcT=dòng 1  khóa=- status=OPEN      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}
+      s1   pcC=dòng 2  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}   ← C chạy dòng 1: s->status = V;
+      s2   pcC=dòng 2  pcT=dòng 2  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={race}   ← T chạy dòng 1: s->status = V;
+    AG(!double_free    ) VI PHẠM ở k = 6   (free vùng đã free)
+      phát lại trên chương trình C thật:  build\tt_v0.exe 4 CCTTTC
+      s0   pcC=dòng 1  pcT=dòng 1  khóa=- status=OPEN      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}
+      s1   pcC=dòng 2  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}   ← C chạy dòng 1: s->status = V;
+      s2   pcC=dòng 3  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=1 card=đã xóa    L={-}   ← C chạy dòng 2: memset(s->card, 0, 16);
+      s3   pcC=dòng 3  pcT=dòng 2  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=1 card=đã xóa    L={race}   ← T chạy dòng 1: s->status = V;
+      s4   pcC=dòng 3  pcT=dòng 3  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=1 card=đã xóa    L={race}   ← T chạy dòng 2: memset(s->card, 0, 16);
+      s5   pcC=dòng 3  pcT=dòng 4  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=0 card=đã xóa    L={race}   ← T chạy dòng 3: free(s->card);
+      s6   pcC=dòng 3  pcT=dòng 4  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=0 card=đã xóa    L={race,double_free}   ← C chạy dòng 3: free(s->card);
+    AG(!use_after_free ) VI PHẠM ở k = 5   (đọc/ghi vùng đã free)
+      phát lại trên chương trình C thật:  build\tt_v0.exe 4 CCTCT
+      s0   pcC=dòng 1  pcT=dòng 1  khóa=- status=OPEN      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}
+      s1   pcC=dòng 2  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}   ← C chạy dòng 1: s->status = V;
+      s2   pcC=dòng 3  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=1 card=đã xóa    L={-}   ← C chạy dòng 2: memset(s->card, 0, 16);
+      s3   pcC=dòng 3  pcT=dòng 2  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=1 card=đã xóa    L={race}   ← T chạy dòng 1: s->status = V;
+      s4   pcC=dòng 4  pcT=dòng 2  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=0 card=đã xóa    L={race}   ← C chạy dòng 3: free(s->card);
+      s5   pcC=dòng 4  pcT=dòng 2  khóa=- status=CANCELLED valid_map[s]=1 valid_map[card]=0 card=đã xóa    L={race,use_after_free}   ← T chạy dòng 2: memset(s->card, 0, 16);
+    AG(!secret_residue ) VI PHẠM ở k = 3   (card đã free nhưng số thẻ còn trong heap)
+      phát lại trên chương trình C thật:  build\tt_v0.exe 4 CCC
+      s0   pcC=dòng 1  pcT=dòng 1  khóa=- status=OPEN      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}
+      s1   pcC=dòng 2  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}   ← C chạy dòng 1: s->status = V;
+      s2   pcC=dòng 3  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=1 card=CÒN số thẻ L={-}   ← C chạy dòng 2: memset(s->card, 0, 16);  ← trình biên dịch đã BỎ lệnh này
+      s3   pcC=dòng 4  pcT=dòng 1  khóa=- status=PAID      valid_map[s]=1 valid_map[card]=0 card=CÒN số thẻ L={secret_residue}   ← C chạy dòng 3: free(s->card);
+
+==============================================================================================================
+H6 — v1: mutex + kiểm tra CLOSED + explicit_bzero (bản sửa)
+==============================================================================================================
+     1 | lock(&s->mtx);
+     2 | if (s->status == CLOSED) goto 7;
+     3 | s->status = V;
+     4 | explicit_bzero(s->card, 16);
+     5 | free(s->card);
+     6 | s->status = CLOSED;
+     7 | unlock(&s->mtx);
+     8 | return;
+  Cấu trúc Kripke K = (S, S0, R, L):
+    S  : s = (pcC, pcT, khóa, status, valid_map[s], valid_map[card], card còn số thẻ, lỗi) — valid_map[p] = 1 khi vùng heap p đã cấp phát và chưa free (giáo trình mục 3.6)
+    S0 : pcC = pcT = 1, khóa trống, status = OPEN, valid_map[s] = valid_map[card] = 1, card chứa số thẻ
+    R  : mỗi bước BỘ LẬP LỊCH chọn C hoặc T (biến tự do chon@k của Z3) chạy MỘT lệnh:
+           dòng 1: lock(&s->mtx);
+           dòng 2: if (s->status == CLOSED) goto 7;
+           dòng 3: s->status = V;
+           dòng 4: explicit_bzero(s->card, 16);
+           dòng 5: free(s->card);
+           dòng 6: s->status = CLOSED;
+           dòng 7: unlock(&s->mtx);
+           free(p) khi valid_map[p] = 0 -> lỗi double_free; đọc/ghi *p khi valid_map[p] = 0 -> use_after_free
+    L  : race ≡ cả C và T cùng ở giữa thao tác trên phiên;  double_free, use_after_free ≡ lệnh vừa chạy vi phạm valid_map;  secret_residue ≡ valid_map[card] = 0 ∧ card còn số thẻ
+  (Z3 giải xong trong 0.1 giây)
+  Kết quả BMC (k = số lệnh CPU đã chạy):
+    AG(!race           ) AN TOÀN — k = 10: I ∧ T^10 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 10
+    AG(!double_free    ) AN TOÀN — k = 10: I ∧ T^10 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 10
+    AG(!use_after_free ) AN TOÀN — k = 10: I ∧ T^10 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 10
+    AG(!secret_residue ) AN TOÀN — k = 10: I ∧ T^10 ∧ ¬KếtThúc UNSAT — mọi đường đi đã dừng, không còn trạng thái mới (completeness threshold), và Bad UNSAT ở mọi k ≤ 10
