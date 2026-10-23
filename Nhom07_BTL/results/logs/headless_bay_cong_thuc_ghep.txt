@@ -1,0 +1,16 @@
+BẪY: CÔNG THỨC GHÉP TRONG PHẦN MỀM GIẢNG VIÊN — so sánh core.kripke.CTLChecker (SecLabFramework) với ctl_checker.py của nhóm
+====================================================================================================
+Phần mềm KHÔNG báo lỗi cú pháp với công thức ghép: nó coi cả chuỗi bên trong là TÊN 1 nhãn không tồn tại -> kết quả sai âm thầm.
+
+--- Mô hình kết hợp v0
+  AG(!(cb_locked & to_locked))             phần mềm: ĐÚNG     | nhóm (đúng ngữ nghĩa): VI PHẠM    <== SAI
+  AG(allocated -> AF(mem_clean))           phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): VI PHẠM  
+  AG(receiving -> AF(flow_end))            phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): VI PHẠM  
+  EF(payment_done | input_rejected)        phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): ĐÚNG       <== SAI
+  EF(payment_done) & EF(input_rejected)    phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): VI PHẠM  
+--- Mô hình kết hợp v1
+  AG(!(cb_locked & to_locked))             phần mềm: ĐÚNG     | nhóm (đúng ngữ nghĩa): ĐÚNG     
+  AG(allocated -> AF(mem_clean))           phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): ĐÚNG       <== SAI
+  AG(receiving -> AF(flow_end))            phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): ĐÚNG       <== SAI
+  EF(payment_done | input_rejected)        phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): ĐÚNG       <== SAI
+  EF(payment_done) & EF(input_rejected)    phần mềm: VI PHẠM  | nhóm (đúng ngữ nghĩa): ĐÚNG       <== SAI

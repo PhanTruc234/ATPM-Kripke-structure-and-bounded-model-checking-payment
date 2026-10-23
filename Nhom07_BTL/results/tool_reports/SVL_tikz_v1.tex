@@ -1,0 +1,124 @@
+% Mô hình chính: thanhtoan_donhang_v1 — phần 1/4
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=red!35] (nd_h6_uaf) at (-0.18,1.84) {h6\_uaf\\{\tiny h6,use\_after\_free,violation}};
+  \node[fill=red!35] (nd_h6_tranh_chap) at (1.39,2.20) {h6\_tranh\_chap\\{\tiny cb\_locked,h6,race,to\_locked,violation}};
+  \node[fill=gray!15] (nd_dung_khong_an_toan) at (-1.15,-1.38) {dung\_khong\_an\_toan\\{\tiny unsafe\_halt}};
+  \node[fill=red!35] (nd_h6_double_free) at (-1.94,0.95) {h6\_double\_free\\{\tiny double\_free,h6,violation}};
+  \node[fill=red!35] (nd_h3_tran_so) at (1.37,0.74) {h3\_tran\_so\\{\tiny h3,int\_overflow,violation}};
+  \node[fill=red!35] (nd_h3_so_am) at (-1.78,1.71) {h3\_so\_am\\{\tiny h3,negative\_amount,violation}};
+  \node[fill=red!35] (nd_h5_format_string) at (2.20,-1.26) {h5\_format\_string\\{\tiny format\_string,h5,violation}};
+  \node[fill=red!35] (nd_h2_doc_rac) at (-0.32,-1.66) {h2\_doc\_rac\\{\tiny h2,uninit\_read,violation}};
+  \node[fill=red!35] (nd_h1_tran_1_byte) at (-0.56,0.26) {h1\_tran\_1\_byte\\{\tiny buffer\_overflow,h1,off\_by\_one,violation}};
+  \node[fill=red!35] (nd_h3_chia_0) at (0.40,-1.85) {h3\_chia\_0\\{\tiny div\_by\_zero,h3,violation}};
+  \node[fill=red!35] (nd_h2_null) at (1.70,-1.81) {h2\_null\\{\tiny h2,null\_deref,violation}};
+  \node[fill=red!35] (nd_h1_tran_bo_dem) at (-1.41,-0.56) {h1\_tran\_bo\_dem\\{\tiny buffer\_overflow,h1,violation}};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h6_con_so_the) at (0.52,1.22) {$\to$ h6\_con\_so\_the};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h2_sai_kich_thuoc) at (-1.75,0.20) {$\to$ h2\_sai\_kich\_thuoc};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h4_nhanh_an) at (1.07,-2.14) {$\to$ h4\_nhanh\_an};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h4_tran_txn) at (1.50,-0.45) {$\to$ h4\_tran\_txn};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h5_ro_ri) at (-1.06,1.98) {$\to$ h5\_ro\_ri};
+  \draw (nd_h6_uaf) -- (nd_dung_khong_an_toan);
+  \draw (nd_h6_tranh_chap) -- (nd_h6_double_free);
+  \draw (nd_h6_tranh_chap) -- (nd_h6_uaf);
+  \draw (nd_dung_khong_an_toan) -- (nd_dung_khong_an_toan);
+  \draw (nd_h6_double_free) -- (nd_dung_khong_an_toan);
+  \draw (nd_h3_tran_so) -- (nd_dung_khong_an_toan);
+  \draw (nd_h3_so_am) -- (nd_dung_khong_an_toan);
+  \draw (nd_h5_format_string) -- (nd_dung_khong_an_toan);
+  \draw (nd_h2_doc_rac) -- (nd_dung_khong_an_toan);
+  \draw (nd_h1_tran_1_byte) -- (nd_dung_khong_an_toan);
+  \draw (nd_h3_chia_0) -- (nd_dung_khong_an_toan);
+  \draw (nd_h2_null) -- (nd_dung_khong_an_toan);
+  \draw (nd_h1_tran_bo_dem) -- (nd_dung_khong_an_toan);
+  \draw (nd___ghost__h6_con_so_the) -- (nd_dung_khong_an_toan);
+  \draw (nd___ghost__h2_sai_kich_thuoc) -- (nd_dung_khong_an_toan);
+  \draw (nd___ghost__h4_nhanh_an) -- (nd_dung_khong_an_toan);
+  \draw (nd___ghost__h4_tran_txn) -- (nd_dung_khong_an_toan);
+  \draw (nd___ghost__h5_ro_ri) -- (nd_dung_khong_an_toan);
+\end{tikzpicture}
+
+% Mô hình chính: thanhtoan_donhang_v1 — phần 2/4
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=red!35] (nd_h5_ro_ri) at (0.99,2.03) {h5\_ro\_ri\\{\tiny h5,mem\_leak,violation}};
+  \node[fill=red!35] (nd_h4_nhanh_an) at (1.16,-1.14) {h4\_nhanh\_an\\{\tiny h4,hidden\_bypass,violation}};
+  \node[fill=red!35] (nd_h4_tran_txn) at (-1.08,-2.20) {h4\_tran\_txn\\{\tiny buffer\_overflow,h4,violation}};
+  \node[fill=red!35] (nd_h2_sai_kich_thuoc) at (-1.84,-0.96) {h2\_sai\_kich\_thuoc\\{\tiny alloc\_size\_overflow,h2,heap\_overflow,violation}};
+  \node[fill=red!35] (nd_h6_con_so_the) at (2.08,0.99) {h6\_con\_so\_the\\{\tiny h6,secret\_residue,violation}};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__dung_khong_an_toan) at (-1.30,1.28) {$\to$ dung\_khong\_an\_toan};
+  \draw (nd_h5_ro_ri) -- (nd___ghost__dung_khong_an_toan);
+  \draw (nd_h4_nhanh_an) -- (nd___ghost__dung_khong_an_toan);
+  \draw (nd_h4_tran_txn) -- (nd___ghost__dung_khong_an_toan);
+  \draw (nd_h2_sai_kich_thuoc) -- (nd___ghost__dung_khong_an_toan);
+  \draw (nd_h6_con_so_the) -- (nd___ghost__dung_khong_an_toan);
+\end{tikzpicture}
+
+% Mô hình chính: thanhtoan_donhang_v1 — phần 3/4
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=blue!25] (nd_start) at (0.13,2.20) {start\\{\tiny safe,start}};
+  \node[fill=gray!15] (nd_h1_vao) at (0.23,0.22) {h1\_vao\\{\tiny h1,receiving}};
+  \node[fill=gray!15] (nd_h1_ok) at (-0.21,-0.58) {h1\_ok\\{\tiny h1,input\_ok}};
+  \node[fill=gray!15] (nd_ket_thuc_tu_choi) at (-1.78,1.04) {ket\_thuc\_tu\_choi\\{\tiny flow\_end,input\_rejected,mem\_clean}};
+  \node[fill=gray!15] (nd_h2_vao) at (0.70,1.14) {h2\_vao\\{\tiny allocating,h2}};
+  \node[fill=gray!15] (nd_h3_vao) at (-0.91,0.36) {h3\_vao\\{\tiny computing,h3}};
+  \node[fill=gray!15] (nd_h2_ok) at (1.45,0.43) {h2\_ok\\{\tiny allocated,h2,initialized}};
+  \node[fill=gray!15] (nd_h3_ok) at (-0.23,-2.13) {h3\_ok\\{\tiny amount\_ok,h3}};
+  \node[fill=gray!15] (nd_h4_vao) at (0.70,-0.84) {h4\_vao\\{\tiny callback\_received,h4}};
+  \node[fill=gray!15] (nd_h4_ok) at (0.35,-2.06) {h4\_ok\\{\tiny callback\_verified,h4}};
+  \node[fill=gray!15] (nd_h4_tu_choi_callback) at (1.84,-0.65) {h4\_tu\_choi\_callback\\{\tiny callback\_rejected,h4}};
+  \node[fill=gray!15] (nd_h5_vao) at (-1.57,-0.95) {h5\_vao\\{\tiny h5,logging}};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h6_phien_ranh) at (1.15,1.85) {$\to$ h6\_phien\_ranh};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h5_ok) at (-1.85,-0.03) {$\to$ h5\_ok};
+  \draw (nd_start) -- (nd_h1_vao);
+  \draw (nd_h1_vao) -- (nd_h1_ok);
+  \draw (nd_h1_vao) -- (nd_ket_thuc_tu_choi);
+  \draw (nd_h1_ok) -- (nd_h2_vao);
+  \draw (nd_ket_thuc_tu_choi) -- (nd_ket_thuc_tu_choi);
+  \draw (nd_h2_vao) -- (nd_h2_ok);
+  \draw (nd_h2_vao) -- (nd_ket_thuc_tu_choi);
+  \draw (nd_h3_vao) -- (nd_ket_thuc_tu_choi);
+  \draw (nd_h3_vao) -- (nd_h3_ok);
+  \draw (nd_h2_ok) -- (nd_h3_vao);
+  \draw (nd_h3_ok) -- (nd_h4_vao);
+  \draw (nd_h4_vao) -- (nd_h4_ok);
+  \draw (nd_h4_vao) -- (nd_h4_tu_choi_callback);
+  \draw (nd_h4_ok) -- (nd_h5_vao);
+  \draw (nd_h4_tu_choi_callback) -- (nd___ghost__h6_phien_ranh);
+  \draw (nd_h5_vao) -- (nd___ghost__h5_ok);
+\end{tikzpicture}
+
+% Mô hình chính: thanhtoan_donhang_v1 — phần 4/4
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=gray!15] (nd_h6_phien_ranh) at (-1.22,-0.42) {h6\_phien\_ranh\\{\tiny h6,sess\_free}};
+  \node[fill=gray!15] (nd_h5_ok) at (1.39,0.40) {h5\_ok\\{\tiny h5,log\_freed}};
+  \node[fill=gray!15] (nd_h6_cb_giu) at (0.01,-0.62) {h6\_cb\_giu\\{\tiny cb\_locked,h6}};
+  \node[fill=gray!15] (nd_h6_to_giu) at (-1.74,0.72) {h6\_to\_giu\\{\tiny h6,to\_locked}};
+  \node[fill=gray!15] (nd_h6_giai_phong) at (0.55,1.69) {h6\_giai\_phong\\{\tiny h6,releasing}};
+  \node[fill=gray!15] (nd_ket_thuc_ok) at (-1.67,1.74) {ket\_thuc\_ok\\{\tiny flow\_end,mem\_clean,payment\_done}};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h4_tu_choi_callback) at (0.87,-1.31) {$\to$ h4\_tu\_choi\_callback};
+  \node[rectangle, dashed, fill=gray!10] (nd___ghost__h5_vao) at (1.81,-2.20) {$\to$ h5\_vao};
+  \draw (nd_h6_phien_ranh) -- (nd_h6_cb_giu);
+  \draw (nd_h6_phien_ranh) -- (nd_h6_to_giu);
+  \draw (nd_h5_ok) -- (nd_h6_phien_ranh);
+  \draw (nd_h6_cb_giu) -- (nd_h6_giai_phong);
+  \draw (nd_h6_to_giu) -- (nd_h6_giai_phong);
+  \draw (nd_h6_giai_phong) -- (nd_ket_thuc_ok);
+  \draw (nd_ket_thuc_ok) -- (nd_ket_thuc_ok);
+  \draw (nd___ghost__h4_tu_choi_callback) -- (nd_h6_phien_ranh);
+  \draw (nd___ghost__h5_vao) -- (nd_h5_ok);
+\end{tikzpicture}

@@ -1,0 +1,188 @@
+==========================================================================
+BÁO CÁO PIPELINE — Đặc tả: thanhtoan_donhang_v0
+==========================================================================
+
+[Chương 1] Kiểm chứng hình thức (Kripke/CTL)
+  Trạng thái deadlock: không có
+  AG(!violation)       -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!buffer_overflow) -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_ok', 'h4_tu_choi_callback', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!off_by_one)      -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_ok', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_ok', 'h2_sai_kich_thuoc', 'h2_vao', 'h3_chia_0', 'h3_ok', 'h3_so_am', 'h3_tran_so', 'h3_vao', 'h4_nhanh_an', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h4_vao', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!null_deref)      -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_ok', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_ok', 'h3_so_am', 'h3_tran_so', 'h3_vao', 'h4_nhanh_an', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h4_vao', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!heap_overflow)   -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_ok', 'h3_chia_0', 'h3_ok', 'h3_so_am', 'h3_tran_so', 'h3_vao', 'h4_nhanh_an', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h4_vao', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!uninit_read)     -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_null', 'h2_ok', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_ok', 'h3_so_am', 'h3_tran_so', 'h3_vao', 'h4_nhanh_an', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h4_vao', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!int_overflow)    -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_ok', 'h3_so_am', 'h4_nhanh_an', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h4_vao', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!negative_amount) -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_ok', 'h3_tran_so', 'h4_nhanh_an', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h4_vao', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!div_by_zero)     -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_ok', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h4_vao', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!hidden_bypass)   -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_ok', 'h4_tran_txn', 'h4_tu_choi_callback', 'h5_format_string', 'h5_ok', 'h5_ro_ri', 'h5_vao', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!mem_leak)        -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_tran_txn', 'h4_tu_choi_callback', 'h5_format_string', 'h5_ok', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!format_string)   -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_tran_txn', 'h4_tu_choi_callback', 'h5_ok', 'h5_ro_ri', 'h6_cb_giu', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!race)            -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_tran_txn', 'h5_format_string', 'h5_ro_ri', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!double_free)     -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_tran_txn', 'h5_format_string', 'h5_ro_ri', 'h6_con_so_the', 'h6_giai_phong', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!use_after_free)  -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_tran_txn', 'h5_format_string', 'h5_ro_ri', 'h6_con_so_the', 'h6_double_free', 'h6_giai_phong', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AG(!secret_residue)  -> VI PHAM (thoa tai: ['dung_khong_an_toan', 'h1_tran_1_byte', 'h1_tran_bo_dem', 'h2_doc_rac', 'h2_null', 'h2_sai_kich_thuoc', 'h3_chia_0', 'h3_so_am', 'h3_tran_so', 'h4_nhanh_an', 'h4_tran_txn', 'h5_format_string', 'h5_ro_ri', 'h6_double_free', 'h6_tranh_chap', 'h6_uaf', 'ket_thuc_ok', 'ket_thuc_tu_choi'])
+  AF(flow_end)         -> VI PHAM (thoa tai: ['ket_thuc_ok', 'ket_thuc_tu_choi'])
+  EF(payment_done)     -> DUNG (thoa tai: ['h1_ok', 'h1_vao', 'h2_ok', 'h2_vao', 'h3_ok', 'h3_vao', 'h4_ok', 'h4_tu_choi_callback', 'h4_vao', 'h5_ok', 'h5_vao', 'h6_cb_giu', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'ket_thuc_ok', 'start'])
+  EF(input_rejected)   -> VI PHAM (thoa tai: ['ket_thuc_tu_choi'])
+  EG(!violation)       -> DUNG (thoa tai: ['dung_khong_an_toan', 'h1_ok', 'h1_vao', 'h2_ok', 'h2_vao', 'h3_ok', 'h3_vao', 'h4_ok', 'h4_tu_choi_callback', 'h4_vao', 'h5_ok', 'h5_vao', 'h6_cb_giu', 'h6_giai_phong', 'h6_phien_ranh', 'h6_to_giu', 'ket_thuc_ok', 'ket_thuc_tu_choi', 'start'])
+  EF(cb_locked)        -> DUNG (thoa tai: ['h1_ok', 'h1_vao', 'h2_ok', 'h2_vao', 'h3_ok', 'h3_vao', 'h4_ok', 'h4_tu_choi_callback', 'h4_vao', 'h5_ok', 'h5_vao', 'h6_cb_giu', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'start'])
+  Mutual exclusion    -> VI PHAM (trang thai nguy hiem: ['h1_ok', 'h1_vao', 'h2_ok', 'h2_vao', 'h3_ok', 'h3_vao', 'h4_ok', 'h4_tu_choi_callback', 'h4_vao', 'h5_ok', 'h5_vao', 'h6_cb_giu', 'h6_phien_ranh', 'h6_to_giu', 'h6_tranh_chap', 'start'])
+
+[Chương 2] Static C Checker trên mã sinh từ đặc tả
+  Phát hiện 5 vấn đề:
+    [dong    8] HIGH   dangerous-function Sử dụng hàm không an toàn 'strcpy()' — dễ gây buffer overflow. Goi y: dung strncpy thay the.
+    [dong   15] HIGH   dangerous-function Sử dụng hàm không an toàn 'strcpy()' — dễ gây buffer overflow. Goi y: dung strncpy thay the.
+    [dong   28] MEDIUM memory-leak      Con trỏ 'buf' được cấp phát (malloc/calloc/realloc) nhưng không thấy free() trong hàm write_payment_log() — nghi ngờ rò rỉ bộ nhớ
+    [dong   38] HIGH   double-free      Double-free trên con trỏ 'buf' (đã free() tại dòng 37) trong hàm close_payment_session()
+    [dong   46] HIGH   use-after-free   Khả năng sử dụng con trỏ 'buf' sau khi free() (freed tại dòng 45) trong hàm release_card_buffer()
+
+[Chương 3] Trích xuất AST/điều kiện + SMT (Z3)
+  parse_order_id: bien=['buffer'] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=3
+  parse_gateway_txn_id: bien=['buffer'] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=3
+  create_order_items: bien=['buf'] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=3
+  write_payment_log: bien=['buf'] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=2
+  close_payment_session: bien=['buf'] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=4
+  release_card_buffer: bien=['buf'] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=4
+  add_shipping_fee: bien=[] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=1
+  installment_amount: bien=[] dieu_kien=[] vong_lap=[]
+      -> độ phức tạp McCabe=1, độ sâu lồng nhau=1, so cau lenh~=0
+  ipn_debug_bypass: bien=[] dieu_kien=['merchant_id == 31337', 'debug_pin == 8080'] vong_lap=[]
+      -> độ phức tạp McCabe=3, độ sâu lồng nhau=3, so cau lenh~=3
+  order_total_int32: sat model={'subtotal': 2147483647, 'shipping_fee': 1}
+  order_total_int32 (int32 overflow?): sat model={'subtotal': 1, 'shipping_fee': 2147483647}
+  line_amount_mul: sat model={'price': 44564485, 'qty': 512}
+  line_amount_mul (int32 overflow?): sat model={'price': -134217729, 'qty': 31981571}
+  accumulated_total: sat model={'total_before': 2147483647, 'line_total': 1}
+  accumulated_total (int32 overflow?): sat model={'total_before': -1, 'line_total': -2147483648}
+  alloc_bytes: sat model={'n_items': 67108607, 'item_size': 48}
+  alloc_bytes (int32 overflow?): sat model={'n_items': -2147483647, 'item_size': -2147483647}
+  negative_total: sat model={'subtotal': 0, 'discount': 1}
+  negative_total (int32 overflow?): sat model={'subtotal': -2, 'discount': 2147483647}
+
+[Chương 4] Dynamic Fuzzing trên hàm sinh từ đặc tả
+  installment_amount: black-box: 11/300 lan crash
+  ipn_debug_bypass: concolic: crash_input={'merchant_id': 31337, 'debug_pin': 8080} sau 3 lan thu
+
+[Phân loại CWE/CVE] Tổng hợp toàn bộ phát hiện
+  Phân loại 31 phát hiện theo CWE/CVE:
+    [ch1] cong thuc AG(!violation): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!buffer_overflow): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!off_by_one): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!null_deref): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!heap_overflow): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!uninit_read): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!int_overflow): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!negative_amount): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!div_by_zero): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!hidden_bypass): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!mem_leak): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!format_string): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!race): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!double_free): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!use_after_free): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AG(!secret_residue): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc AF(flow_end): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] cong thuc EF(input_rejected): safety-property-violation -> CWE-693 (Protection Mechanism Failure)
+    [ch1] mô hình trạng thái: mutual-exclusion-violation -> CWE-667 (Improper Locking)
+    [ch2] dong 8: dangerous-function -> CWE-120 (Buffer Copy without Checking Size of Input)
+        vi du minh hoa: CVE-2003-0352 (2003) — Lỗi tràn bộ đệm trong dịch vụ RPC/DCOM của Windows (khai thác bởi sâu MSBlast).
+    [ch2] dong 15: dangerous-function -> CWE-120 (Buffer Copy without Checking Size of Input)
+        vi du minh hoa: CVE-2003-0352 (2003) — Lỗi tràn bộ đệm trong dịch vụ RPC/DCOM của Windows (khai thác bởi sâu MSBlast).
+    [ch2] dong 28: memory-leak -> CWE-401 (Missing Release of Memory after Effective Lifetime)
+    [ch2] dong 38: double-free -> CWE-415 (Double Free)
+    [ch2] dong 46: use-after-free -> CWE-416 (Use After Free)
+        vi du minh hoa: CVE-2019-0708 (2019) — 'BlueKeep' — lỗi use-after-free trong dịch vụ Remote Desktop của Windows.
+    [ch3] order_total_int32: integer-overflow -> CWE-190 (Integer Overflow or Wraparound)
+        vi du minh hoa: CVE-2016-5195 (2016) — 'Dirty COW' — điều kiện tranh chấp liên quan tới xử lý bộ nhớ trong Linux kernel.
+    [ch3] line_amount_mul: integer-overflow -> CWE-190 (Integer Overflow or Wraparound)
+        vi du minh hoa: CVE-2016-5195 (2016) — 'Dirty COW' — điều kiện tranh chấp liên quan tới xử lý bộ nhớ trong Linux kernel.
+    [ch3] accumulated_total: integer-overflow -> CWE-190 (Integer Overflow or Wraparound)
+        vi du minh hoa: CVE-2016-5195 (2016) — 'Dirty COW' — điều kiện tranh chấp liên quan tới xử lý bộ nhớ trong Linux kernel.
+    [ch3] alloc_bytes: integer-overflow -> CWE-190 (Integer Overflow or Wraparound)
+        vi du minh hoa: CVE-2016-5195 (2016) — 'Dirty COW' — điều kiện tranh chấp liên quan tới xử lý bộ nhớ trong Linux kernel.
+    [ch3] negative_total: integer-overflow -> CWE-190 (Integer Overflow or Wraparound)
+        vi du minh hoa: CVE-2016-5195 (2016) — 'Dirty COW' — điều kiện tranh chấp liên quan tới xử lý bộ nhớ trong Linux kernel.
+    [ch4] installment_amount: uncontrolled-crash -> CWE-248 (Uncaught Exception)
+    [ch4] ipn_debug_bypass: uncontrolled-crash -> CWE-248 (Uncaught Exception)
+
+[Test Case] Truy vết từ đặc tả (tài liệu hóa)
+  14 test case được khai báo trong đặc tả:
+    [HIGH] TC-01 — Mã đơn dài đúng 16 ký tự và dài 100 ký tự  (truy vet: REQ-01, CON-01)
+        Tien dieu kien: parse_order_id sinh từ đặc tả (v0: Loi=buffer-overflow, buffer 16)
+        Buoc 1: Sinh mã C cho parse_order_id
+        Buoc 2: Chạy check_c_source() (Chương 2)
+        Buoc 3: Kiểm tra AG(!buffer_overflow), AG(!off_by_one) trên mô hình
+        Kết quả mong đợi: v0: dangerous-function strcpy (CWE-120), 2 công thức VI PHẠM; v1: 0 phát hiện, công thức ĐÚNG
+    [HIGH] TC-02 — Bản sửa của phần mềm có cắt cụt mã đơn 16 ký tự không  (truy vet: REQ-02, CON-01)
+        Tien dieu kien: Mô hình con M1, luồng 'M1-v1a' (strncpy 15 + '\0')
+        Buoc 1: Nạp mo_hinh_con/M1_tiep_nhan_yeu_cau.json vào tab Ch1
+        Buoc 2: Chọn luồng M1-v1a, kiểm tra AG(!truncated)
+        Buoc 3: So sánh với luồng M1-v1b
+        Kết quả mong đợi: M1-v1a: AG(!truncated) VI PHẠM (mã bị cắt, phần mềm không báo); M1-v1b: ĐÚNG
+    [HIGH] TC-03 — Cấp phát mảng sản phẩm  (truy vet: REQ-03, REQ-04, REQ-05)
+        Tien dieu kien: create_order_items (alloc_release, không cài lỗi); mô hình con M2
+        Buoc 1: Chạy check_c_source() trên mã sinh
+        Buoc 2: Kiểm tra M2-v0: AG(!null_deref), AG(!heap_overflow), AG(!uninit_read)
+        Buoc 3: Chạy KiemTraSoHoc alloc_bytes
+        Kết quả mong đợi: Phần mềm quét mã: 0 phát hiện; mô hình M2-v0: 3 công thức VI PHẠM; alloc_bytes SAT (v0) / UNSAT (v1)
+    [HIGH] TC-04 — Tổng tiền tràn int32  (truy vet: REQ-06, CON-03, CON-04)
+        Tien dieu kien: KiemTraSoHoc order_total_int32, line_amount_mul, accumulated_total; BMC vòng lặp trong file JSON
+        Buoc 1: Chạy check_satisfiability() trên DieuKien
+        Buoc 2: Chạy BMC bmc_cong_don_don_hang (k = 100)
+        Kết quả mong đợi: v0: SAT kèm phản ví dụ, BMC vi phạm tại bước 48 (total = 2.160.000.000); v1: UNSAT, BMC không vi phạm
+    [HIGH] TC-05 — Số tiền âm do giảm giá  (truy vet: REQ-07, CON-03)
+        Tien dieu kien: KiemTraSoHoc negative_total
+        Buoc 1: Chạy check_satisfiability() trên DieuKien
+        Kết quả mong đợi: v0: SAT (vd discount > subtotal); v1: UNSAT
+    [MEDIUM] TC-06 — Trả góp với số kỳ hạn = 0  (truy vet: REQ-08, CON-05)
+        Tien dieu kien: Hàm Python installment_amount(total, months) (kind = divide) — chỉ có ở v0
+        Buoc 1: Chạy blackbox_fuzz() 300 lần
+        Kết quả mong đợi: v0: tìm được ít nhất 1 crash ZeroDivisionError (CWE-248/369); v1: hàm đã thay bằng kiểm tra 1 <= months <= 24
+    [HIGH] TC-07 — Mã giao dịch callback dài hơn 20 ký tự  (truy vet: REQ-09, CON-02)
+        Tien dieu kien: parse_gateway_txn_id (v0: buffer 20, Loi=buffer-overflow)
+        Buoc 1: Sinh mã C
+        Buoc 2: Chạy check_c_source()
+        Kết quả mong đợi: v0: dangerous-function (CWE-120); v1: 0 phát hiện
+    [HIGH] TC-08 — Nhánh ẩn bỏ qua xác thực chữ ký  (truy vet: REQ-10)
+        Tien dieu kien: Hàm Python ipn_debug_bypass(merchant_id, debug_pin), magic_values = (31337, 8080)
+        Buoc 1: Chạy black-box fuzz trước (kỳ vọng không tìm ra)
+        Buoc 2: Chạy concolic_fuzz()
+        Kết quả mong đợi: Black-box: 0 lần chạm nhánh; concolic: tìm đúng (31337, 8080) sau vài lần thử (CWE-912)
+    [MEDIUM] TC-09 — Rò rỉ bộ nhớ khi ghi log lỗi  (truy vet: REQ-11, NFR-03)
+        Tien dieu kien: write_payment_log (v0: Loi=memory-leak)
+        Buoc 1: Sinh mã C
+        Buoc 2: Chạy check_c_source()
+        Kết quả mong đợi: v0: memory-leak (CWE-401); v1: 0 phát hiện
+    [MEDIUM] TC-10 — Chuỗi định dạng trong log  (truy vet: REQ-12)
+        Tien dieu kien: Mô hình con M5 (mo_hinh_con/M5_ghi_log.json) — khuôn mẫu sinh mã của phần mềm không tạo được lỗi này
+        Buoc 1: Nạp M5_ghi_log.json vào tab Ch1
+        Buoc 2: Chọn luồng M5-v0, kiểm tra AG(!format_string)
+        Buoc 3: Chọn luồng M5-v1, kiểm tra lại
+        Kết quả mong đợi: M5-v0: AG(!format_string) VI PHẠM (CWE-134); M5-v1: ĐÚNG
+    [HIGH] TC-11 — Callback và timeout cùng đóng phiên  (truy vet: REQ-13, NFR-04)
+        Tien dieu kien: Cụm trạng thái h6_* trong mô hình kết hợp; LoaiTruLanNhau dòng 1 (cb_locked, to_locked)
+        Buoc 1: Worker timeout kích hoạt đúng lúc worker callback đang giữ phiên
+        Buoc 2: Chạy check_mutual_exclusion(model, 'cb_locked', 'to_locked')
+        Kết quả mong đợi: v0: Mutual exclusion VI PHẠM tại h6_tranh_chap (CWE-667); v1: ĐÚNG
+    [HIGH] TC-12 — Double free và use-after-free khi đóng phiên  (truy vet: REQ-14, REQ-15)
+        Tien dieu kien: close_payment_session (double-free), release_card_buffer (use-after-free)
+        Buoc 1: Gộp mã C của 2 hàm
+        Buoc 2: Chạy check_c_source()
+        Kết quả mong đợi: v0: double-free (CWE-415) và use-after-free (CWE-416); v1: 0 phát hiện
+    [HIGH] TC-13 — Số thẻ còn trong bộ nhớ sau khi giải phóng  (truy vet: REQ-16, NFR-05, CON-07)
+        Tien dieu kien: Mô hình con M6 (mo_hinh_con/M6_dong_phien.json)
+        Buoc 1: Nạp M6_dong_phien.json vào tab Ch1
+        Buoc 2: Chọn luồng M6-v0, kiểm tra AG(!secret_residue)
+        Buoc 3: Chọn luồng M6-v1, kiểm tra lại
+        Kết quả mong đợi: M6-v0: VI PHẠM (CWE-226/244, CWE-14); M6-v1 (explicit_bzero trước free): ĐÚNG
+    [HIGH] TC-14 — Toàn luồng thanh toán  (truy vet: REQ-17, REQ-18)
+        Tien dieu kien: Mô hình kết hợp (sheet MoHinhTrangThai)
+        Buoc 1: Chạy '1) Sinh Kripke + kiểm chứng (Ch1)'
+        Buoc 2: Kiểm tra deadlock, AF(flow_end), EF(payment_done), EF(input_rejected)
+        Kết quả mong đợi: Không deadlock; v0: AF(flow_end) và EF(input_rejected) VI PHẠM; v1: tất cả ĐÚNG

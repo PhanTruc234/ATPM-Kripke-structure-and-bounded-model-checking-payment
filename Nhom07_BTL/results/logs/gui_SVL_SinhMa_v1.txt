@@ -1,0 +1,54 @@
+=== Mã C sinh từ đặc tả ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* sinh từ đặc tả 'thanhtoan_donhang_v1', hàm 'parse_order_id', kind='buffer_copy' */
+void parse_order_id(const char *raw_order_id) {
+    char buffer[17];
+    strncpy(buffer, raw_order_id, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+    printf("%s\n", buffer);
+}
+
+/* sinh từ đặc tả 'thanhtoan_donhang_v1', hàm 'parse_gateway_txn_id', kind='buffer_copy' */
+void parse_gateway_txn_id(const char *raw_txn_id) {
+    char buffer[21];
+    strncpy(buffer, raw_txn_id, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+    printf("%s\n", buffer);
+}
+
+/* sinh từ đặc tả 'thanhtoan_donhang_v1', hàm 'create_order_items', kind='alloc_release' */
+void create_order_items(void) {
+    int *buf = malloc(sizeof(int) * 100);
+    buf[0] = 0;
+    free(buf);
+}
+
+/* sinh từ đặc tả 'thanhtoan_donhang_v1', hàm 'write_payment_log', kind='alloc_release' */
+void write_payment_log(void) {
+    int *buf = malloc(sizeof(int) * 32);
+    buf[0] = 0;
+    free(buf);
+}
+
+/* sinh từ đặc tả 'thanhtoan_donhang_v1', hàm 'close_payment_session', kind='alloc_release' */
+void close_payment_session(void) {
+    int *buf = malloc(sizeof(int) * 4);
+    buf[0] = 0;
+    free(buf);
+}
+
+/* sinh từ đặc tả 'thanhtoan_donhang_v1', hàm 'release_card_buffer', kind='alloc_release' */
+void release_card_buffer(void) {
+    int *buf = malloc(sizeof(int) * 16);
+    buf[0] = 0;
+    free(buf);
+}
+
+/* sinh từ đặc tả 'thanhtoan_donhang_v1', hàm 'add_shipping_fee', kind='arithmetic' */
+int add_shipping_fee(int subtotal, int shipping_fee) {
+    return subtotal + shipping_fee;
+}
+

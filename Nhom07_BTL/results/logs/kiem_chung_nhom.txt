@@ -1,0 +1,313 @@
+KIỂM CHỨNG ĐỘC LẬP CỦA NHÓM 07 — kripke.py + ctl_checker.py + bounded_checker.py (giáo trình A.1.1, A.3.3)
+Ghi chú BMC: SAT = tìm thấy đường đi tới trạng thái xấu trong <= k bước; UNSAT+CT = không có và đã duyệt hết.
+
+=== thanhtoan_donhang_v0 (mô hình kết hợp, đọc từ thanhtoan_donhang_v0.xlsx)  |S|=35  |R|=53  S0=['start']  reachable=34
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!violation)             -> VI PHẠM
+      AG(!buffer_overflow)       -> VI PHẠM
+      AG(!off_by_one)            -> VI PHẠM
+      AG(!null_deref)            -> VI PHẠM
+      AG(!heap_overflow)         -> VI PHẠM
+      AG(!uninit_read)           -> VI PHẠM
+      AG(!int_overflow)          -> VI PHẠM
+      AG(!negative_amount)       -> VI PHẠM
+      AG(!div_by_zero)           -> VI PHẠM
+      AG(!hidden_bypass)         -> VI PHẠM
+      AG(!mem_leak)              -> VI PHẠM
+      AG(!format_string)         -> VI PHẠM
+      AG(!race)                  -> VI PHẠM
+      AG(!double_free)           -> VI PHẠM
+      AG(!use_after_free)        -> VI PHẠM
+      AG(!secret_residue)        -> VI PHẠM
+      AF(flow_end)               -> VI PHẠM
+      EF(payment_done)           -> ĐÚNG
+      EF(input_rejected)         -> VI PHẠM
+      EG(!violation)             -> ĐÚNG
+      EF(cb_locked)              -> ĐÚNG
+      Mutex(cb_locked, to_locked)  -> VI PHẠM tại h6_tranh_chap
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(!(cb_locked & to_locked))                 -> VI PHẠM  (G ¬(cb ∧ to): mutex viết dạng CTL)
+      AG(allocated -> AF(mem_clean))               -> VI PHẠM  (G(allocated → F mem_clean): cấp phát thì cuối cùng bộ nhớ sạch)
+      AG(receiving -> AF(flow_end))                -> VI PHẠM  (G(receiving → F flow_end): nhận yêu cầu thì cuối cùng kết thúc)
+      AG(callback_received -> AF(flow_end))        -> VI PHẠM  (G(callback → F flow_end))
+      EF(payment_done) & EF(input_rejected)        -> VI PHẠM  (có cả nhánh thành công lẫn nhánh từ chối)
+  [4] BMC (bounded_checker) — completeness threshold CT = 12
+      AG(!violation)             VI PHẠM ở k=2: start -> h1_vao -> h1_tran_1_byte
+      AG(!buffer_overflow)       VI PHẠM ở k=2: start -> h1_vao -> h1_tran_1_byte
+      AG(!off_by_one)            VI PHẠM ở k=2: start -> h1_vao -> h1_tran_1_byte
+      AG(!null_deref)            VI PHẠM ở k=4: start -> h1_vao -> h1_ok -> h2_vao -> h2_null
+      AG(!heap_overflow)         VI PHẠM ở k=4: start -> h1_vao -> h1_ok -> h2_vao -> h2_sai_kich_thuoc
+      AG(!uninit_read)           VI PHẠM ở k=4: start -> h1_vao -> h1_ok -> h2_vao -> h2_doc_rac
+      AG(!int_overflow)          VI PHẠM ở k=6: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_tran_so
+      AG(!negative_amount)       VI PHẠM ở k=6: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_so_am
+      AG(!div_by_zero)           VI PHẠM ở k=6: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_chia_0
+      AG(!hidden_bypass)         VI PHẠM ở k=8: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_ok -> h4_vao -> h4_nhanh_an
+      AG(!mem_leak)              VI PHẠM ở k=10: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_ok -> h4_vao -> h4_ok -> h5_vao -> h5_ro_ri
+      AG(!format_string)         VI PHẠM ở k=10: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_ok -> h4_vao -> h4_ok -> h5_vao -> h5_format_string
+      AG(!race)                  VI PHẠM ở k=11: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_ok -> h4_vao -> h4_tu_choi_callback -> h6_phien_ranh -> h6_cb_giu -> h6_tranh_chap
+      AG(!double_free)           VI PHẠM ở k=12: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_ok -> h4_vao -> h4_tu_choi_callback -> h6_phien_ranh -> h6_cb_giu -> h6_tranh_chap -> h6_double_free
+      AG(!use_after_free)        VI PHẠM ở k=12: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_ok -> h4_vao -> h4_tu_choi_callback -> h6_phien_ranh -> h6_cb_giu -> h6_tranh_chap -> h6_uaf
+      AG(!secret_residue)        VI PHẠM ở k=12: start -> h1_vao -> h1_ok -> h2_vao -> h2_ok -> h3_vao -> h3_ok -> h4_vao -> h4_tu_choi_callback -> h6_phien_ranh -> h6_cb_giu -> h6_giai_phong -> h6_con_so_the
+      Quét k cho AG(!violation): k=0:UNSAT  k=1:UNSAT  k=2:SAT  k=3:SAT  k=4:SAT  k=5:SAT  k=6:SAT  k=7:SAT  k=8:SAT  k=9:SAT  k=10:SAT  k=11:SAT  k=12:SAT  k=13:SAT
+
+=== thanhtoan_donhang_v1 (mô hình kết hợp, đọc từ thanhtoan_donhang_v1.xlsx)  |S|=35  |R|=41  S0=['start']  reachable=18
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!violation)             -> ĐÚNG
+      AG(!buffer_overflow)       -> ĐÚNG
+      AG(!off_by_one)            -> ĐÚNG
+      AG(!null_deref)            -> ĐÚNG
+      AG(!heap_overflow)         -> ĐÚNG
+      AG(!uninit_read)           -> ĐÚNG
+      AG(!int_overflow)          -> ĐÚNG
+      AG(!negative_amount)       -> ĐÚNG
+      AG(!div_by_zero)           -> ĐÚNG
+      AG(!hidden_bypass)         -> ĐÚNG
+      AG(!mem_leak)              -> ĐÚNG
+      AG(!format_string)         -> ĐÚNG
+      AG(!race)                  -> ĐÚNG
+      AG(!double_free)           -> ĐÚNG
+      AG(!use_after_free)        -> ĐÚNG
+      AG(!secret_residue)        -> ĐÚNG
+      AF(flow_end)               -> ĐÚNG
+      EF(payment_done)           -> ĐÚNG
+      EF(input_rejected)         -> ĐÚNG
+      EG(!violation)             -> ĐÚNG
+      EF(cb_locked)              -> ĐÚNG
+      Mutex(cb_locked, to_locked)  -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(!(cb_locked & to_locked))                 -> ĐÚNG     (G ¬(cb ∧ to): mutex viết dạng CTL)
+      AG(allocated -> AF(mem_clean))               -> ĐÚNG     (G(allocated → F mem_clean): cấp phát thì cuối cùng bộ nhớ sạch)
+      AG(receiving -> AF(flow_end))                -> ĐÚNG     (G(receiving → F flow_end): nhận yêu cầu thì cuối cùng kết thúc)
+      AG(callback_received -> AF(flow_end))        -> ĐÚNG     (G(callback → F flow_end))
+      EF(payment_done) & EF(input_rejected)        -> ĐÚNG     (có cả nhánh thành công lẫn nhánh từ chối)
+  [4] BMC (bounded_checker) — completeness threshold CT = 12
+      AG(!violation)             AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!buffer_overflow)       AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!off_by_one)            AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!null_deref)            AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!heap_overflow)         AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!uninit_read)           AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!int_overflow)          AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!negative_amount)       AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!div_by_zero)           AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!hidden_bypass)         AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!mem_leak)              AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!format_string)         AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!race)                  AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!double_free)           AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!use_after_free)        AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      AG(!secret_residue)        AN TOÀN — đã đạt CT ở k=13, không còn trạng thái nào chưa duyệt
+      Quét k cho AG(!violation): k=0:UNSAT  k=1:UNSAT  k=2:UNSAT  k=3:UNSAT  k=4:UNSAT  k=5:UNSAT  k=6:UNSAT  k=7:UNSAT  k=8:UNSAT  k=9:UNSAT  k=10:UNSAT  k=11:UNSAT  k=12:UNSAT  k=13:UNSAT+CT
+
+######## M1 — H1 Tiếp nhận yêu cầu: chép mã đơn (tối đa 16 ký tự) vào bộ đệm
+
+=== M1-v0: strcpy vào order_id[16] (CÓ LỖI)  |S|=7  |R|=9  S0=['m1_nhan_chuoi']  reachable=7
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!buffer_overflow)       -> VI PHẠM
+      AG(!off_by_one)            -> VI PHẠM
+      AG(!truncated)             -> ĐÚNG
+      AF(done)                   -> VI PHẠM
+      EF(len_eq_cap)             -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(len_eq_cap -> AF(copied_ok))              -> VI PHẠM  (mã dài đúng 16 ký tự phải được chép NGUYÊN VẸN)
+  [4] BMC (bounded_checker) — completeness threshold CT = 2
+      AG(!buffer_overflow)       VI PHẠM ở k=2: m1_nhan_chuoi -> m1_len_bang_16 -> m1_tran_1_byte
+      AG(!off_by_one)            VI PHẠM ở k=2: m1_nhan_chuoi -> m1_len_bang_16 -> m1_tran_1_byte
+      AG(!truncated)             AN TOÀN — đã đạt CT ở k=3, không còn trạng thái nào chưa duyệt
+
+=== M1-v1a: bản 'an toàn' phần mềm sinh — strncpy(buf,src,15) (CẮT CỤT)  |S|=6  |R|=8  S0=['m1_nhan_chuoi']  reachable=6
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!buffer_overflow)       -> ĐÚNG
+      AG(!off_by_one)            -> ĐÚNG
+      AG(!truncated)             -> VI PHẠM
+      AF(done)                   -> VI PHẠM
+      EF(len_eq_cap)             -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(len_eq_cap -> AF(copied_ok))              -> VI PHẠM  (mã dài đúng 16 ký tự phải được chép NGUYÊN VẸN)
+  [4] BMC (bounded_checker) — completeness threshold CT = 2
+      AG(!buffer_overflow)       AN TOÀN — đã đạt CT ở k=3, không còn trạng thái nào chưa duyệt
+      AG(!off_by_one)            AN TOÀN — đã đạt CT ở k=3, không còn trạng thái nào chưa duyệt
+      AG(!truncated)             VI PHẠM ở k=2: m1_nhan_chuoi -> m1_len_bang_16 -> m1_cat_cut
+
+=== M1-v1b: bản sửa của nhóm — buf[17] + strnlen + từ chối  |S|=6  |R|=8  S0=['m1_nhan_chuoi']  reachable=6
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!buffer_overflow)       -> ĐÚNG
+      AG(!off_by_one)            -> ĐÚNG
+      AG(!truncated)             -> ĐÚNG
+      AF(done)                   -> ĐÚNG
+      EF(len_eq_cap)             -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(len_eq_cap -> AF(copied_ok))              -> ĐÚNG     (mã dài đúng 16 ký tự phải được chép NGUYÊN VẸN)
+  [4] BMC (bounded_checker) — completeness threshold CT = 2
+      AG(!buffer_overflow)       AN TOÀN — đã đạt CT ở k=3, không còn trạng thái nào chưa duyệt
+      AG(!off_by_one)            AN TOÀN — đã đạt CT ở k=3, không còn trạng thái nào chưa duyệt
+      AG(!truncated)             AN TOÀN — đã đạt CT ở k=3, không còn trạng thái nào chưa duyệt
+
+######## M2 — H2 Tạo đơn: items = malloc(n * sizeof(Item)), sizeof(Item) = 48
+
+=== M2-v0: malloc không kiểm tra (CÓ LỖI)  |S|=10  |R|=13  S0=['m2_nhan_n']  reachable=10
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!null_deref)            -> VI PHẠM
+      AG(!heap_overflow)         -> VI PHẠM
+      AG(!uninit_read)           -> VI PHẠM
+      AF(done)                   -> VI PHẠM
+      EF(ptr_null)               -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(ptr_null -> AX(input_rejected))           -> VI PHẠM  (malloc NULL thì bước kế tiếp phải từ chối)
+      AG(allocated -> AF(in_use))                  -> VI PHẠM  (đã cấp phát thì cuối cùng được dùng hợp lệ)
+  [4] BMC (bounded_checker) — completeness threshold CT = 4
+      AG(!null_deref)            VI PHẠM ở k=3: m2_nhan_n -> m2_n_hop_le -> m2_malloc_null -> m2_null_deref
+      AG(!heap_overflow)         VI PHẠM ở k=2: m2_nhan_n -> m2_n_bat_thuong -> m2_tran_heap
+      AG(!uninit_read)           VI PHẠM ở k=3: m2_nhan_n -> m2_n_hop_le -> m2_cap_phat_chua_kt -> m2_doc_rac
+
+=== M2-v1: kiểm tra n, calloc, kiểm tra NULL  |S|=6  |R|=8  S0=['m2_nhan_n']  reachable=6
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!null_deref)            -> ĐÚNG
+      AG(!heap_overflow)         -> ĐÚNG
+      AG(!uninit_read)           -> ĐÚNG
+      AF(done)                   -> ĐÚNG
+      EF(ptr_null)               -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(ptr_null -> AX(input_rejected))           -> ĐÚNG     (malloc NULL thì bước kế tiếp phải từ chối)
+      AG(allocated -> AF(in_use))                  -> ĐÚNG     (đã cấp phát thì cuối cùng được dùng hợp lệ)
+  [4] BMC (bounded_checker) — completeness threshold CT = 3
+      AG(!null_deref)            AN TOÀN — đã đạt CT ở k=4, không còn trạng thái nào chưa duyệt
+      AG(!heap_overflow)         AN TOÀN — đã đạt CT ở k=4, không còn trạng thái nào chưa duyệt
+      AG(!uninit_read)           AN TOÀN — đã đạt CT ở k=4, không còn trạng thái nào chưa duyệt
+
+######## M3 — H3 Tính tổng tiền: total = Σ price*qty + ship − discount (int32, VND)
+
+=== M3-v0: int32, không kiểm tra miền (CÓ LỖI)  |S|=11  |R|=15  S0=['m3_nhan_du_lieu']  reachable=11
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!int_overflow)          -> VI PHẠM
+      AG(!negative_amount)       -> VI PHẠM
+      AG(!div_by_zero)           -> VI PHẠM
+      AF(done)                   -> VI PHẠM
+      EF(amount_ok)              -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(input_ok -> AF(amount_ok | input_rejected)) -> VI PHẠM  (đầu vào hợp lệ thì cuối cùng ra tổng hợp lệ hoặc bị từ chối)
+  [4] BMC (bounded_checker) — completeness threshold CT = 4
+      AG(!int_overflow)          VI PHẠM ở k=3: m3_nhan_du_lieu -> m3_dau_vao_hop_le -> m3_nhan_dong -> m3_tran_nhan
+      AG(!negative_amount)       VI PHẠM ở k=2: m3_nhan_du_lieu -> m3_dau_vao_am -> m3_tong_am
+      AG(!div_by_zero)           VI PHẠM ở k=2: m3_nhan_du_lieu -> m3_ky_han_0 -> m3_chia_0
+
+=== M3-v1: kiểm tra miền + int64 + hạn mức  |S|=6  |R|=9  S0=['m3_nhan_du_lieu']  reachable=6
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!int_overflow)          -> ĐÚNG
+      AG(!negative_amount)       -> ĐÚNG
+      AG(!div_by_zero)           -> ĐÚNG
+      AF(done)                   -> ĐÚNG
+      EF(amount_ok)              -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(input_ok -> AF(amount_ok | input_rejected)) -> ĐÚNG     (đầu vào hợp lệ thì cuối cùng ra tổng hợp lệ hoặc bị từ chối)
+  [4] BMC (bounded_checker) — completeness threshold CT = 4
+      AG(!int_overflow)          AN TOÀN — đã đạt CT ở k=5, không còn trạng thái nào chưa duyệt
+      AG(!negative_amount)       AN TOÀN — đã đạt CT ở k=5, không còn trạng thái nào chưa duyệt
+      AG(!div_by_zero)           AN TOÀN — đã đạt CT ở k=5, không còn trạng thái nào chưa duyệt
+
+######## M4 — H4 Nhận callback (IPN) từ cổng thanh toán
+
+=== M4-v0: strcpy txn_id[20] + nhánh debug (CÓ LỖI)  |S|=9  |R|=12  S0=['m4_nhan_callback']  reachable=9
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!buffer_overflow)       -> VI PHẠM
+      AG(!hidden_bypass)         -> VI PHẠM
+      AF(done)                   -> VI PHẠM
+      EF(accepted)               -> ĐÚNG
+      EF(callback_rejected)      -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(len_ok -> AF(accepted | callback_rejected)) -> VI PHẠM  (callback đúng độ dài thì cuối cùng được chấp nhận hoặc từ chối)
+  [4] BMC (bounded_checker) — completeness threshold CT = 4
+      AG(!buffer_overflow)       VI PHẠM ở k=2: m4_nhan_callback -> m4_txn_qua_dai -> m4_tran_txn
+      AG(!hidden_bypass)         VI PHẠM ở k=2: m4_nhan_callback -> m4_txn_hop_le -> m4_nhanh_an
+
+=== M4-v1: kiểm tra độ dài, xóa nhánh ẩn  |S|=6  |R|=8  S0=['m4_nhan_callback']  reachable=6
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!buffer_overflow)       -> ĐÚNG
+      AG(!hidden_bypass)         -> ĐÚNG
+      AF(done)                   -> ĐÚNG
+      EF(accepted)               -> ĐÚNG
+      EF(callback_rejected)      -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(len_ok -> AF(accepted | callback_rejected)) -> ĐÚNG     (callback đúng độ dài thì cuối cùng được chấp nhận hoặc từ chối)
+  [4] BMC (bounded_checker) — completeness threshold CT = 4
+      AG(!buffer_overflow)       AN TOÀN — đã đạt CT ở k=5, không còn trạng thái nào chưa duyệt
+      AG(!hidden_bypass)         AN TOÀN — đã đạt CT ở k=5, không còn trạng thái nào chưa duyệt
+
+######## M5 — H5 Ghi log giao dịch: e = malloc(sizeof(LogEntry))
+
+=== M5-v0: printf(msg) + return sớm (CÓ LỖI)  |S|=8  |R|=10  S0=['m5_bat_dau']  reachable=8
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!mem_leak)              -> VI PHẠM
+      AG(!format_string)         -> VI PHẠM
+      AF(freed)                  -> VI PHẠM
+      EF(error_path)             -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(allocated -> AF(freed))                   -> VI PHẠM  (G(allocated → F freed): không rò rỉ)
+  [4] BMC (bounded_checker) — completeness threshold CT = 4
+      AG(!mem_leak)              VI PHẠM ở k=4: m5_bat_dau -> m5_cap_phat -> m5_ghi_noi_dung -> m5_loi_ghi_dia -> m5_ro_ri
+      AG(!format_string)         VI PHẠM ở k=3: m5_bat_dau -> m5_cap_phat -> m5_ghi_noi_dung -> m5_format_string
+
+=== M5-v1: printf("%s") + goto cleanup  |S|=6  |R|=7  S0=['m5_bat_dau']  reachable=6
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!mem_leak)              -> ĐÚNG
+      AG(!format_string)         -> ĐÚNG
+      AF(freed)                  -> ĐÚNG
+      EF(error_path)             -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(allocated -> AF(freed))                   -> ĐÚNG     (G(allocated → F freed): không rò rỉ)
+  [4] BMC (bounded_checker) — completeness threshold CT = 4
+      AG(!mem_leak)              AN TOÀN — đã đạt CT ở k=5, không còn trạng thái nào chưa duyệt
+      AG(!format_string)         AN TOÀN — đã đạt CT ở k=5, không còn trạng thái nào chưa duyệt
+
+######## M6 — H6 Đóng phiên: worker callback và worker timeout dùng chung PaymentSession *s
+
+=== M6-v0: không khóa, memset trước free (CÓ LỖI)  |S|=9  |R|=15  S0=['m6_phien_mo']  reachable=9
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!race)                  -> VI PHẠM
+      AG(!double_free)           -> VI PHẠM
+      AG(!use_after_free)        -> VI PHẠM
+      AG(!secret_residue)        -> VI PHẠM
+      AF(session_freed)          -> VI PHẠM
+      EF(cb_locked)              -> ĐÚNG
+      Mutex(cb_locked, to_locked)  -> VI PHẠM tại m6_tranh_chap
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(!(cb_locked & to_locked))                 -> VI PHẠM  (mutex dạng CTL)
+      AG(releasing -> AF(session_freed))           -> VI PHẠM  (bắt đầu giải phóng thì cuối cùng phiên được giải phóng sạch)
+  [4] BMC (bounded_checker) — completeness threshold CT = 3
+      AG(!race)                  VI PHẠM ở k=2: m6_phien_mo -> m6_cb_giu -> m6_tranh_chap
+      AG(!double_free)           VI PHẠM ở k=3: m6_phien_mo -> m6_cb_giu -> m6_tranh_chap -> m6_double_free
+      AG(!use_after_free)        VI PHẠM ở k=3: m6_phien_mo -> m6_cb_giu -> m6_tranh_chap -> m6_uaf
+      AG(!secret_residue)        VI PHẠM ở k=3: m6_phien_mo -> m6_cb_giu -> m6_giai_phong -> m6_con_so_the
+
+=== M6-v1: mutex + status CLOSED + explicit_bzero  |S|=7  |R|=8  S0=['m6_phien_mo']  reachable=7
+  [1] Deadlock: không có
+  [2] CTL của đặc tả (cùng cú pháp phần mềm):
+      AG(!race)                  -> ĐÚNG
+      AG(!double_free)           -> ĐÚNG
+      AG(!use_after_free)        -> ĐÚNG
+      AG(!secret_residue)        -> ĐÚNG
+      AF(session_freed)          -> ĐÚNG
+      EF(cb_locked)              -> ĐÚNG
+      Mutex(cb_locked, to_locked)  -> ĐÚNG
+  [3] CTL ghép/lồng nhau (phần mềm KHÔNG hỗ trợ cú pháp này — tự kiểm chứng):
+      AG(!(cb_locked & to_locked))                 -> ĐÚNG     (mutex dạng CTL)
+      AG(releasing -> AF(session_freed))           -> ĐÚNG     (bắt đầu giải phóng thì cuối cùng phiên được giải phóng sạch)
+  [4] BMC (bounded_checker) — completeness threshold CT = 5
+      AG(!race)                  AN TOÀN — đã đạt CT ở k=6, không còn trạng thái nào chưa duyệt
+      AG(!double_free)           AN TOÀN — đã đạt CT ở k=6, không còn trạng thái nào chưa duyệt
+      AG(!use_after_free)        AN TOÀN — đã đạt CT ở k=6, không còn trạng thái nào chưa duyệt
+      AG(!secret_residue)        AN TOÀN — đã đạt CT ở k=6, không còn trạng thái nào chưa duyệt
