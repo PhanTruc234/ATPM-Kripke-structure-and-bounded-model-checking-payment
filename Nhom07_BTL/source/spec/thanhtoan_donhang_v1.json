@@ -1,0 +1,1356 @@
+{
+  "name": "thanhtoan_donhang_v1",
+  "description": "Quy trình thanh toán trực tuyến 1 đơn hàng qua cổng thanh toán (có callback IPN), gồm 6 hành vi: H1 tiếp nhận yêu cầu (chép mã đơn vào bộ đệm), H2 tạo đơn (cấp phát mảng sản phẩm), H3 tính tổng tiền (số nguyên 32-bit, VND), H4 nhận callback từ cổng (chép mã giao dịch, xác thực chữ ký), H5 ghi log giao dịch, H6 đóng phiên (worker callback và worker timeout dùng chung phiên thanh toán). Bản v1 ĐÃ SỬA: kiểm tra độ dài/miền giá trị và từ chối đầu vào xấu, kiểm tra NULL, calloc, tính tiền bằng int64 + hạn mức, xóa nhánh ẩn, giải phóng trên mọi nhánh, printf(\"%s\"), khóa phiên + trạng thái CLOSED, explicit_bzero trước khi free.",
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "text": "H1: Hàm phân tích mã đơn hàng (parse_order_id) không được ghi vượt biên bộ đệm, kể cả khi mã dài ĐÚNG 16 ký tự (C1.2, C1.3)",
+      "category": "memory",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-02",
+      "text": "H1: Mã đơn hàng hợp lệ không được bị cắt cụt hoặc biến đổi khi lưu vào bộ đệm (C1.4)",
+      "category": "functional",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-03",
+      "text": "H2: Kết quả cấp phát mảng sản phẩm (create_order_items) phải được kiểm tra NULL trước khi sử dụng (C2.2)",
+      "category": "memory",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-04",
+      "text": "H2: Kích thước vùng nhớ cấp phát (số dòng x kích thước 1 dòng) không được tràn số hoặc âm (C2.3)",
+      "category": "safety",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-05",
+      "text": "H2: Không được đọc trường dữ liệu của đơn hàng trước khi khởi tạo (C2.4)",
+      "category": "memory",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "REQ-06",
+      "text": "H3: Tổng tiền đơn hàng không được tràn kiểu int32, kể cả khi cộng dồn nhiều dòng sản phẩm (C3.2, C3.3)",
+      "category": "safety",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-07",
+      "text": "H3: Số lượng, đơn giá, giảm giá không được âm; tổng tiền phải thanh toán không được âm (C3.4)",
+      "category": "safety",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-08",
+      "text": "H3: Hàm tính tiền trả góp không được gây lỗi không kiểm soát khi số kỳ hạn = 0 (C3.5)",
+      "category": "functional",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "REQ-09",
+      "text": "H4: Hàm phân tích mã giao dịch từ callback (parse_gateway_txn_id) không được tràn bộ đệm (C4.2)",
+      "category": "memory",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-10",
+      "text": "H4: Mọi callback phải được xác thực chữ ký; không được tồn tại nhánh ẩn bỏ qua kiểm tra (C4.3)",
+      "category": "safety",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-11",
+      "text": "H5: Bản ghi log giao dịch (write_payment_log) phải được giải phóng trên mọi nhánh, kể cả nhánh lỗi (C5.2)",
+      "category": "memory",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "REQ-12",
+      "text": "H5: Nội dung log có dữ liệu người dùng không được dùng làm chuỗi định dạng của printf (C5.3)",
+      "category": "safety",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "REQ-13",
+      "text": "H6: Worker callback và worker timeout không được đồng thời giữ phiên thanh toán (mutual exclusion) (C6.2)",
+      "category": "safety",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-14",
+      "text": "H6: Phiên thanh toán (close_payment_session) chỉ được giải phóng đúng 1 lần (C6.3)",
+      "category": "memory",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-15",
+      "text": "H6: Không được truy cập phiên/bộ đệm thẻ (release_card_buffer) sau khi đã giải phóng (C6.4)",
+      "category": "memory",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-16",
+      "text": "H6: Dữ liệu thẻ phải được xóa trắng bằng lệnh không bị trình biên dịch loại bỏ trước khi giải phóng (C6.5)",
+      "category": "safety",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-17",
+      "text": "Toàn luồng: mọi đường xử lý thanh toán cuối cùng phải kết thúc (thành công hoặc từ chối an toàn), không dừng ở trạng thái không an toàn",
+      "category": "liveness",
+      "priority": "HIGH"
+    },
+    {
+      "id": "REQ-18",
+      "text": "Toàn luồng: luồng thanh toán thành công phải đạt tới được (mô hình không tầm thường) và đầu vào xấu phải có nhánh từ chối",
+      "category": "liveness",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "NFR-01",
+      "text": "Hệ thống xử lý tối thiểu 200 yêu cầu thanh toán/giây trên phần cứng tham chiếu",
+      "category": "non_functional",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "NFR-02",
+      "text": "Phản hồi callback cho cổng thanh toán trong tối đa 3 giây (quá hạn cổng sẽ gửi lại IPN, gây callback lặp)",
+      "category": "non_functional",
+      "priority": "HIGH"
+    },
+    {
+      "id": "NFR-03",
+      "text": "Bộ nhớ tiến trình không tăng quá 5% sau 1.000.000 giao dịch liên tiếp (dấu hiệu rò rỉ bộ nhớ)",
+      "category": "non_functional",
+      "priority": "HIGH"
+    },
+    {
+      "id": "NFR-04",
+      "text": "Phiên thanh toán tự hết hạn sau 15 phút nếu không nhận được callback (worker timeout)",
+      "category": "non_functional",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "NFR-05",
+      "text": "Dữ liệu thẻ không được tồn tại trong bộ nhớ quá thời gian xử lý 1 giao dịch (tinh thần PCI-DSS)",
+      "category": "non_functional",
+      "priority": "HIGH"
+    },
+    {
+      "id": "NFR-06",
+      "text": "Log giao dịch được lưu tối thiểu 12 tháng để đối soát",
+      "category": "non_functional",
+      "priority": "LOW"
+    },
+    {
+      "id": "CON-01",
+      "text": "Mã đơn hàng tối đa 16 ký tự ASCII (16 ký tự cần 17 byte kể cả '\\0')",
+      "category": "constraint",
+      "priority": "HIGH"
+    },
+    {
+      "id": "CON-02",
+      "text": "Mã giao dịch của cổng thanh toán tối đa 20 ký tự ASCII",
+      "category": "constraint",
+      "priority": "HIGH"
+    },
+    {
+      "id": "CON-03",
+      "text": "Mỗi đơn có 1–100 dòng sản phẩm; số lượng mỗi dòng 1–1000; đơn giá 0–50.000.000 VND; giá trị mỗi dòng tối đa 50.000.000 VND",
+      "category": "constraint",
+      "priority": "HIGH"
+    },
+    {
+      "id": "CON-04",
+      "text": "Số tiền tính bằng VND; bản v0 dùng int 32-bit có dấu (tối đa 2.147.483.647); hạn mức 1 đơn là 2.000.000.000 VND",
+      "category": "constraint",
+      "priority": "HIGH"
+    },
+    {
+      "id": "CON-05",
+      "text": "Kỳ hạn trả góp từ 1 đến 24 tháng",
+      "category": "constraint",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "CON-06",
+      "text": "Chỉ dùng thư viện chuẩn C; phiên thanh toán được bảo vệ bằng mutex nhẹ",
+      "category": "constraint",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "CON-07",
+      "text": "Bộ đệm số thẻ (PAN) 16 chữ số, chỉ tồn tại trong thời gian xử lý giao dịch",
+      "category": "constraint",
+      "priority": "HIGH"
+    }
+  ],
+  "state_machine": {
+    "states": [
+      "start",
+      "h1_vao",
+      "h1_ok",
+      "h1_tran_1_byte",
+      "h1_tran_bo_dem",
+      "h2_vao",
+      "h2_ok",
+      "h2_null",
+      "h2_sai_kich_thuoc",
+      "h2_doc_rac",
+      "h3_vao",
+      "h3_ok",
+      "h3_tran_so",
+      "h3_so_am",
+      "h3_chia_0",
+      "h4_vao",
+      "h4_ok",
+      "h4_tu_choi_callback",
+      "h4_tran_txn",
+      "h4_nhanh_an",
+      "h5_vao",
+      "h5_ok",
+      "h5_ro_ri",
+      "h5_format_string",
+      "h6_phien_ranh",
+      "h6_cb_giu",
+      "h6_to_giu",
+      "h6_tranh_chap",
+      "h6_double_free",
+      "h6_uaf",
+      "h6_giai_phong",
+      "h6_con_so_the",
+      "ket_thuc_ok",
+      "ket_thuc_tu_choi",
+      "dung_khong_an_toan"
+    ],
+    "initial": [
+      "start"
+    ],
+    "labeling": {
+      "start": [
+        "start",
+        "safe"
+      ],
+      "h1_vao": [
+        "h1",
+        "receiving"
+      ],
+      "h1_ok": [
+        "h1",
+        "input_ok"
+      ],
+      "h1_tran_1_byte": [
+        "h1",
+        "buffer_overflow",
+        "off_by_one",
+        "violation"
+      ],
+      "h1_tran_bo_dem": [
+        "h1",
+        "buffer_overflow",
+        "violation"
+      ],
+      "h2_vao": [
+        "h2",
+        "allocating"
+      ],
+      "h2_ok": [
+        "h2",
+        "allocated",
+        "initialized"
+      ],
+      "h2_null": [
+        "h2",
+        "null_deref",
+        "violation"
+      ],
+      "h2_sai_kich_thuoc": [
+        "h2",
+        "alloc_size_overflow",
+        "heap_overflow",
+        "violation"
+      ],
+      "h2_doc_rac": [
+        "h2",
+        "uninit_read",
+        "violation"
+      ],
+      "h3_vao": [
+        "h3",
+        "computing"
+      ],
+      "h3_ok": [
+        "h3",
+        "amount_ok"
+      ],
+      "h3_tran_so": [
+        "h3",
+        "int_overflow",
+        "violation"
+      ],
+      "h3_so_am": [
+        "h3",
+        "negative_amount",
+        "violation"
+      ],
+      "h3_chia_0": [
+        "h3",
+        "div_by_zero",
+        "violation"
+      ],
+      "h4_vao": [
+        "h4",
+        "callback_received"
+      ],
+      "h4_ok": [
+        "h4",
+        "callback_verified"
+      ],
+      "h4_tu_choi_callback": [
+        "h4",
+        "callback_rejected"
+      ],
+      "h4_tran_txn": [
+        "h4",
+        "buffer_overflow",
+        "violation"
+      ],
+      "h4_nhanh_an": [
+        "h4",
+        "hidden_bypass",
+        "violation"
+      ],
+      "h5_vao": [
+        "h5",
+        "logging"
+      ],
+      "h5_ok": [
+        "h5",
+        "log_freed"
+      ],
+      "h5_ro_ri": [
+        "h5",
+        "mem_leak",
+        "violation"
+      ],
+      "h5_format_string": [
+        "h5",
+        "format_string",
+        "violation"
+      ],
+      "h6_phien_ranh": [
+        "h6",
+        "sess_free"
+      ],
+      "h6_cb_giu": [
+        "h6",
+        "cb_locked"
+      ],
+      "h6_to_giu": [
+        "h6",
+        "to_locked"
+      ],
+      "h6_tranh_chap": [
+        "h6",
+        "cb_locked",
+        "to_locked",
+        "race",
+        "violation"
+      ],
+      "h6_double_free": [
+        "h6",
+        "double_free",
+        "violation"
+      ],
+      "h6_uaf": [
+        "h6",
+        "use_after_free",
+        "violation"
+      ],
+      "h6_giai_phong": [
+        "h6",
+        "releasing"
+      ],
+      "h6_con_so_the": [
+        "h6",
+        "secret_residue",
+        "violation"
+      ],
+      "ket_thuc_ok": [
+        "flow_end",
+        "payment_done",
+        "mem_clean"
+      ],
+      "ket_thuc_tu_choi": [
+        "flow_end",
+        "input_rejected",
+        "mem_clean"
+      ],
+      "dung_khong_an_toan": [
+        "unsafe_halt"
+      ]
+    },
+    "transitions": [
+      [
+        "start",
+        "h1_vao"
+      ],
+      [
+        "h1_vao",
+        "h1_ok"
+      ],
+      [
+        "h1_vao",
+        "ket_thuc_tu_choi"
+      ],
+      [
+        "h1_ok",
+        "h2_vao"
+      ],
+      [
+        "h2_vao",
+        "h2_ok"
+      ],
+      [
+        "h2_vao",
+        "ket_thuc_tu_choi"
+      ],
+      [
+        "h2_ok",
+        "h3_vao"
+      ],
+      [
+        "h3_vao",
+        "h3_ok"
+      ],
+      [
+        "h3_vao",
+        "ket_thuc_tu_choi"
+      ],
+      [
+        "h3_ok",
+        "h4_vao"
+      ],
+      [
+        "h4_vao",
+        "h4_ok"
+      ],
+      [
+        "h4_vao",
+        "h4_tu_choi_callback"
+      ],
+      [
+        "h4_ok",
+        "h5_vao"
+      ],
+      [
+        "h4_tu_choi_callback",
+        "h6_phien_ranh"
+      ],
+      [
+        "h5_vao",
+        "h5_ok"
+      ],
+      [
+        "h5_ok",
+        "h6_phien_ranh"
+      ],
+      [
+        "h6_phien_ranh",
+        "h6_cb_giu"
+      ],
+      [
+        "h6_phien_ranh",
+        "h6_to_giu"
+      ],
+      [
+        "h6_cb_giu",
+        "h6_giai_phong"
+      ],
+      [
+        "h6_to_giu",
+        "h6_giai_phong"
+      ],
+      [
+        "h6_giai_phong",
+        "ket_thuc_ok"
+      ],
+      [
+        "ket_thuc_ok",
+        "ket_thuc_ok"
+      ],
+      [
+        "ket_thuc_tu_choi",
+        "ket_thuc_tu_choi"
+      ],
+      [
+        "dung_khong_an_toan",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h1_tran_1_byte",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h1_tran_bo_dem",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h2_null",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h2_sai_kich_thuoc",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h2_doc_rac",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h3_tran_so",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h3_so_am",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h3_chia_0",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h4_tran_txn",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h4_nhanh_an",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h5_ro_ri",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h5_format_string",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h6_double_free",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h6_uaf",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h6_con_so_the",
+        "dung_khong_an_toan"
+      ],
+      [
+        "h6_tranh_chap",
+        "h6_double_free"
+      ],
+      [
+        "h6_tranh_chap",
+        "h6_uaf"
+      ]
+    ]
+  },
+  "additional_flows": {
+    "M1-v1b: bản sửa của nhóm — buf[17] + strnlen + từ chối": {
+      "states": [
+        "m1_nhan_chuoi",
+        "m1_len_nho",
+        "m1_len_bang_16",
+        "m1_len_lon",
+        "m1_chep_dung",
+        "m1_tu_choi"
+      ],
+      "initial": [
+        "m1_nhan_chuoi"
+      ],
+      "labeling": {
+        "m1_nhan_chuoi": [
+          "receiving"
+        ],
+        "m1_len_nho": [
+          "len_lt_cap"
+        ],
+        "m1_len_bang_16": [
+          "len_eq_cap"
+        ],
+        "m1_len_lon": [
+          "len_gt_cap"
+        ],
+        "m1_chep_dung": [
+          "copied_ok",
+          "done"
+        ],
+        "m1_tu_choi": [
+          "input_rejected",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m1_nhan_chuoi",
+          "m1_len_nho"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_bang_16"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_lon"
+        ],
+        [
+          "m1_len_nho",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_len_bang_16",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_len_lon",
+          "m1_tu_choi"
+        ],
+        [
+          "m1_chep_dung",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_tu_choi",
+          "m1_tu_choi"
+        ]
+      ]
+    },
+    "M2-v1: kiểm tra n, calloc, kiểm tra NULL": {
+      "states": [
+        "m2_nhan_n",
+        "m2_n_hop_le",
+        "m2_malloc_null",
+        "m2_da_khoi_tao",
+        "m2_su_dung",
+        "m2_tu_choi"
+      ],
+      "initial": [
+        "m2_nhan_n"
+      ],
+      "labeling": {
+        "m2_nhan_n": [
+          "receiving"
+        ],
+        "m2_n_hop_le": [
+          "size_ok"
+        ],
+        "m2_malloc_null": [
+          "ptr_null"
+        ],
+        "m2_da_khoi_tao": [
+          "allocated",
+          "initialized"
+        ],
+        "m2_su_dung": [
+          "in_use",
+          "done"
+        ],
+        "m2_tu_choi": [
+          "input_rejected",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m2_nhan_n",
+          "m2_n_hop_le"
+        ],
+        [
+          "m2_nhan_n",
+          "m2_tu_choi"
+        ],
+        [
+          "m2_n_hop_le",
+          "m2_malloc_null"
+        ],
+        [
+          "m2_n_hop_le",
+          "m2_da_khoi_tao"
+        ],
+        [
+          "m2_malloc_null",
+          "m2_tu_choi"
+        ],
+        [
+          "m2_da_khoi_tao",
+          "m2_su_dung"
+        ],
+        [
+          "m2_su_dung",
+          "m2_su_dung"
+        ],
+        [
+          "m2_tu_choi",
+          "m2_tu_choi"
+        ]
+      ]
+    },
+    "M3-v1: kiểm tra miền + int64 + hạn mức": {
+      "states": [
+        "m3_nhan_du_lieu",
+        "m3_dau_vao_hop_le",
+        "m3_nhan_dong",
+        "m3_cong_don",
+        "m3_tong_hop_le",
+        "m3_tu_choi"
+      ],
+      "initial": [
+        "m3_nhan_du_lieu"
+      ],
+      "labeling": {
+        "m3_nhan_du_lieu": [
+          "receiving"
+        ],
+        "m3_dau_vao_hop_le": [
+          "input_ok"
+        ],
+        "m3_nhan_dong": [
+          "multiplying"
+        ],
+        "m3_cong_don": [
+          "accumulating"
+        ],
+        "m3_tong_hop_le": [
+          "amount_ok",
+          "done"
+        ],
+        "m3_tu_choi": [
+          "input_rejected",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m3_nhan_du_lieu",
+          "m3_dau_vao_hop_le"
+        ],
+        [
+          "m3_nhan_du_lieu",
+          "m3_tu_choi"
+        ],
+        [
+          "m3_dau_vao_hop_le",
+          "m3_nhan_dong"
+        ],
+        [
+          "m3_nhan_dong",
+          "m3_cong_don"
+        ],
+        [
+          "m3_nhan_dong",
+          "m3_tu_choi"
+        ],
+        [
+          "m3_cong_don",
+          "m3_tong_hop_le"
+        ],
+        [
+          "m3_cong_don",
+          "m3_tu_choi"
+        ],
+        [
+          "m3_tong_hop_le",
+          "m3_tong_hop_le"
+        ],
+        [
+          "m3_tu_choi",
+          "m3_tu_choi"
+        ]
+      ]
+    },
+    "M4-v1: kiểm tra độ dài, xóa nhánh ẩn": {
+      "states": [
+        "m4_nhan_callback",
+        "m4_txn_hop_le",
+        "m4_kiem_chu_ky",
+        "m4_chu_ky_dung",
+        "m4_tu_choi",
+        "m4_chap_nhan"
+      ],
+      "initial": [
+        "m4_nhan_callback"
+      ],
+      "labeling": {
+        "m4_nhan_callback": [
+          "receiving"
+        ],
+        "m4_txn_hop_le": [
+          "len_ok"
+        ],
+        "m4_kiem_chu_ky": [
+          "verifying"
+        ],
+        "m4_chu_ky_dung": [
+          "verified"
+        ],
+        "m4_tu_choi": [
+          "callback_rejected",
+          "done"
+        ],
+        "m4_chap_nhan": [
+          "accepted",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m4_nhan_callback",
+          "m4_txn_hop_le"
+        ],
+        [
+          "m4_nhan_callback",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_txn_hop_le",
+          "m4_kiem_chu_ky"
+        ],
+        [
+          "m4_kiem_chu_ky",
+          "m4_chu_ky_dung"
+        ],
+        [
+          "m4_kiem_chu_ky",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_chu_ky_dung",
+          "m4_chap_nhan"
+        ],
+        [
+          "m4_tu_choi",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_chap_nhan",
+          "m4_chap_nhan"
+        ]
+      ]
+    },
+    "M5-v1: printf(\"%s\") + goto cleanup": {
+      "states": [
+        "m5_bat_dau",
+        "m5_cap_phat",
+        "m5_ghi_noi_dung",
+        "m5_in_an_toan",
+        "m5_loi_ghi_dia",
+        "m5_giai_phong"
+      ],
+      "initial": [
+        "m5_bat_dau"
+      ],
+      "labeling": {
+        "m5_bat_dau": [
+          "receiving"
+        ],
+        "m5_cap_phat": [
+          "allocated"
+        ],
+        "m5_ghi_noi_dung": [
+          "allocated",
+          "in_use"
+        ],
+        "m5_in_an_toan": [
+          "allocated",
+          "printed"
+        ],
+        "m5_loi_ghi_dia": [
+          "allocated",
+          "error_path"
+        ],
+        "m5_giai_phong": [
+          "freed",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m5_bat_dau",
+          "m5_cap_phat"
+        ],
+        [
+          "m5_cap_phat",
+          "m5_ghi_noi_dung"
+        ],
+        [
+          "m5_ghi_noi_dung",
+          "m5_in_an_toan"
+        ],
+        [
+          "m5_ghi_noi_dung",
+          "m5_loi_ghi_dia"
+        ],
+        [
+          "m5_in_an_toan",
+          "m5_giai_phong"
+        ],
+        [
+          "m5_loi_ghi_dia",
+          "m5_giai_phong"
+        ],
+        [
+          "m5_giai_phong",
+          "m5_giai_phong"
+        ]
+      ]
+    },
+    "M6-v1: mutex + status CLOSED + explicit_bzero": {
+      "states": [
+        "m6_phien_mo",
+        "m6_cb_giu",
+        "m6_to_giu",
+        "m6_giai_phong",
+        "m6_xoa_trang",
+        "m6_da_dong",
+        "m6_den_sau_bo_qua"
+      ],
+      "initial": [
+        "m6_phien_mo"
+      ],
+      "labeling": {
+        "m6_phien_mo": [
+          "sess_free"
+        ],
+        "m6_cb_giu": [
+          "cb_locked"
+        ],
+        "m6_to_giu": [
+          "to_locked"
+        ],
+        "m6_giai_phong": [
+          "releasing"
+        ],
+        "m6_xoa_trang": [
+          "wiped"
+        ],
+        "m6_da_dong": [
+          "session_freed",
+          "done"
+        ],
+        "m6_den_sau_bo_qua": [
+          "late_ignored",
+          "session_freed",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m6_phien_mo",
+          "m6_cb_giu"
+        ],
+        [
+          "m6_phien_mo",
+          "m6_to_giu"
+        ],
+        [
+          "m6_cb_giu",
+          "m6_giai_phong"
+        ],
+        [
+          "m6_to_giu",
+          "m6_giai_phong"
+        ],
+        [
+          "m6_giai_phong",
+          "m6_xoa_trang"
+        ],
+        [
+          "m6_xoa_trang",
+          "m6_da_dong"
+        ],
+        [
+          "m6_da_dong",
+          "m6_den_sau_bo_qua"
+        ],
+        [
+          "m6_den_sau_bo_qua",
+          "m6_den_sau_bo_qua"
+        ]
+      ]
+    }
+  },
+  "safety_properties": [
+    "AG(!violation)",
+    "AG(!buffer_overflow)",
+    "AG(!off_by_one)",
+    "AG(!null_deref)",
+    "AG(!heap_overflow)",
+    "AG(!uninit_read)",
+    "AG(!int_overflow)",
+    "AG(!negative_amount)",
+    "AG(!div_by_zero)",
+    "AG(!hidden_bypass)",
+    "AG(!mem_leak)",
+    "AG(!format_string)",
+    "AG(!race)",
+    "AG(!double_free)",
+    "AG(!use_after_free)",
+    "AG(!secret_residue)",
+    "AF(flow_end)",
+    "EF(payment_done)",
+    "EF(input_rejected)",
+    "EG(!violation)",
+    "EF(cb_locked)"
+  ],
+  "mutual_exclusion": {
+    "atom1": "cb_locked",
+    "atom2": "to_locked"
+  },
+  "functions": [
+    {
+      "name": "parse_order_id",
+      "language": "c",
+      "kind": "buffer_copy",
+      "params": [
+        "raw_order_id"
+      ],
+      "buffer_size": 17,
+      "bug": null
+    },
+    {
+      "name": "parse_gateway_txn_id",
+      "language": "c",
+      "kind": "buffer_copy",
+      "params": [
+        "raw_txn_id"
+      ],
+      "buffer_size": 21,
+      "bug": null
+    },
+    {
+      "name": "create_order_items",
+      "language": "c",
+      "kind": "alloc_release",
+      "params": [],
+      "buffer_size": 100,
+      "bug": null
+    },
+    {
+      "name": "write_payment_log",
+      "language": "c",
+      "kind": "alloc_release",
+      "params": [],
+      "buffer_size": 32,
+      "bug": null
+    },
+    {
+      "name": "close_payment_session",
+      "language": "c",
+      "kind": "alloc_release",
+      "params": [],
+      "buffer_size": 4,
+      "bug": null
+    },
+    {
+      "name": "release_card_buffer",
+      "language": "c",
+      "kind": "alloc_release",
+      "params": [],
+      "buffer_size": 16,
+      "bug": null
+    },
+    {
+      "name": "add_shipping_fee",
+      "language": "c",
+      "kind": "arithmetic",
+      "params": [
+        "subtotal",
+        "shipping_fee"
+      ]
+    }
+  ],
+  "arithmetic_checks": [
+    {
+      "name": "order_total_int32",
+      "int_vars": [
+        "subtotal",
+        "shipping_fee"
+      ],
+      "condition": "subtotal >= 0 and subtotal <= 2000000000 and shipping_fee >= 0 and shipping_fee <= 500000 and subtotal + shipping_fee > 2147483647",
+      "overflow_expr": "subtotal + shipping_fee"
+    },
+    {
+      "name": "line_amount_mul",
+      "int_vars": [
+        "price",
+        "qty"
+      ],
+      "condition": "price >= 0 and price <= 50000000 and qty >= 1 and qty <= 1000 and price * qty <= 50000000 and price * qty > 2147483647",
+      "overflow_expr": "price * qty"
+    },
+    {
+      "name": "accumulated_total",
+      "int_vars": [
+        "total_before",
+        "line_total"
+      ],
+      "condition": "total_before >= 0 and line_total >= 0 and line_total <= 50000000 and total_before <= 2000000000 - line_total and total_before + line_total > 2147483647",
+      "overflow_expr": "total_before + line_total"
+    },
+    {
+      "name": "alloc_bytes",
+      "int_vars": [
+        "n_items",
+        "item_size"
+      ],
+      "condition": "n_items >= 1 and n_items <= 100 and item_size == 48 and n_items * item_size > 2147483647",
+      "overflow_expr": "n_items * item_size"
+    },
+    {
+      "name": "negative_total",
+      "int_vars": [
+        "subtotal",
+        "discount"
+      ],
+      "condition": "subtotal >= 0 and subtotal <= 2000000000 and discount >= 0 and discount <= subtotal and subtotal - discount < 0",
+      "overflow_expr": "subtotal - discount"
+    },
+    {
+      "name": "bmc_cong_don_don_hang",
+      "int_vars": [
+        "i",
+        "total"
+      ],
+      "bmc_init": {
+        "i": 0,
+        "total": 0
+      },
+      "bmc_step": "i = i + 1; total = total + 45000000",
+      "bmc_cond": "i < 100 and total + 45000000 <= 2000000000",
+      "bmc_assert": "total <= 2147483647",
+      "bmc_k": 100
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "TC-01",
+      "requirement_ids": [
+        "REQ-01",
+        "CON-01"
+      ],
+      "title": "Mã đơn dài đúng 16 ký tự và dài 100 ký tự",
+      "preconditions": "parse_order_id sinh từ đặc tả (v0: Loi=buffer-overflow, buffer 16)",
+      "steps": [
+        "Sinh mã C cho parse_order_id",
+        "Chạy check_c_source() (Chương 2)",
+        "Kiểm tra AG(!buffer_overflow), AG(!off_by_one) trên mô hình"
+      ],
+      "expected_result": "v0: dangerous-function strcpy (CWE-120), 2 công thức VI PHẠM; v1: 0 phát hiện, công thức ĐÚNG",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-02",
+      "requirement_ids": [
+        "REQ-02",
+        "CON-01"
+      ],
+      "title": "Bản sửa của phần mềm có cắt cụt mã đơn 16 ký tự không",
+      "preconditions": "Mô hình con M1, luồng 'M1-v1a' (strncpy 15 + '\\0')",
+      "steps": [
+        "Nạp mo_hinh_con/M1_tiep_nhan_yeu_cau.json vào tab Ch1",
+        "Chọn luồng M1-v1a, kiểm tra AG(!truncated)",
+        "So sánh với luồng M1-v1b"
+      ],
+      "expected_result": "M1-v1a: AG(!truncated) VI PHẠM (mã bị cắt, phần mềm không báo); M1-v1b: ĐÚNG",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-03",
+      "requirement_ids": [
+        "REQ-03",
+        "REQ-04",
+        "REQ-05"
+      ],
+      "title": "Cấp phát mảng sản phẩm",
+      "preconditions": "create_order_items (alloc_release, không cài lỗi); mô hình con M2",
+      "steps": [
+        "Chạy check_c_source() trên mã sinh",
+        "Kiểm tra M2-v0: AG(!null_deref), AG(!heap_overflow), AG(!uninit_read)",
+        "Chạy KiemTraSoHoc alloc_bytes"
+      ],
+      "expected_result": "Phần mềm quét mã: 0 phát hiện; mô hình M2-v0: 3 công thức VI PHẠM; alloc_bytes SAT (v0) / UNSAT (v1)",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-04",
+      "requirement_ids": [
+        "REQ-06",
+        "CON-03",
+        "CON-04"
+      ],
+      "title": "Tổng tiền tràn int32",
+      "preconditions": "KiemTraSoHoc order_total_int32, line_amount_mul, accumulated_total; BMC vòng lặp trong file JSON",
+      "steps": [
+        "Chạy check_satisfiability() trên DieuKien",
+        "Chạy BMC bmc_cong_don_don_hang (k = 100)"
+      ],
+      "expected_result": "v0: SAT kèm phản ví dụ, BMC vi phạm tại bước 48 (total = 2.160.000.000); v1: UNSAT, BMC không vi phạm",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-05",
+      "requirement_ids": [
+        "REQ-07",
+        "CON-03"
+      ],
+      "title": "Số tiền âm do giảm giá",
+      "preconditions": "KiemTraSoHoc negative_total",
+      "steps": [
+        "Chạy check_satisfiability() trên DieuKien"
+      ],
+      "expected_result": "v0: SAT (vd discount > subtotal); v1: UNSAT",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-06",
+      "requirement_ids": [
+        "REQ-08",
+        "CON-05"
+      ],
+      "title": "Trả góp với số kỳ hạn = 0",
+      "preconditions": "Hàm Python installment_amount(total, months) (kind = divide) — chỉ có ở v0",
+      "steps": [
+        "Chạy blackbox_fuzz() 300 lần"
+      ],
+      "expected_result": "v0: tìm được ít nhất 1 crash ZeroDivisionError (CWE-248/369); v1: hàm đã thay bằng kiểm tra 1 <= months <= 24",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TC-07",
+      "requirement_ids": [
+        "REQ-09",
+        "CON-02"
+      ],
+      "title": "Mã giao dịch callback dài hơn 20 ký tự",
+      "preconditions": "parse_gateway_txn_id (v0: buffer 20, Loi=buffer-overflow)",
+      "steps": [
+        "Sinh mã C",
+        "Chạy check_c_source()"
+      ],
+      "expected_result": "v0: dangerous-function (CWE-120); v1: 0 phát hiện",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-08",
+      "requirement_ids": [
+        "REQ-10"
+      ],
+      "title": "Nhánh ẩn bỏ qua xác thực chữ ký",
+      "preconditions": "Hàm Python ipn_debug_bypass(merchant_id, debug_pin), magic_values = (31337, 8080)",
+      "steps": [
+        "Chạy black-box fuzz trước (kỳ vọng không tìm ra)",
+        "Chạy concolic_fuzz()"
+      ],
+      "expected_result": "Black-box: 0 lần chạm nhánh; concolic: tìm đúng (31337, 8080) sau vài lần thử (CWE-912)",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-09",
+      "requirement_ids": [
+        "REQ-11",
+        "NFR-03"
+      ],
+      "title": "Rò rỉ bộ nhớ khi ghi log lỗi",
+      "preconditions": "write_payment_log (v0: Loi=memory-leak)",
+      "steps": [
+        "Sinh mã C",
+        "Chạy check_c_source()"
+      ],
+      "expected_result": "v0: memory-leak (CWE-401); v1: 0 phát hiện",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TC-10",
+      "requirement_ids": [
+        "REQ-12"
+      ],
+      "title": "Chuỗi định dạng trong log",
+      "preconditions": "Mô hình con M5 (mo_hinh_con/M5_ghi_log.json) — khuôn mẫu sinh mã của phần mềm không tạo được lỗi này",
+      "steps": [
+        "Nạp M5_ghi_log.json vào tab Ch1",
+        "Chọn luồng M5-v0, kiểm tra AG(!format_string)",
+        "Chọn luồng M5-v1, kiểm tra lại"
+      ],
+      "expected_result": "M5-v0: AG(!format_string) VI PHẠM (CWE-134); M5-v1: ĐÚNG",
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "TC-11",
+      "requirement_ids": [
+        "REQ-13",
+        "NFR-04"
+      ],
+      "title": "Callback và timeout cùng đóng phiên",
+      "preconditions": "Cụm trạng thái h6_* trong mô hình kết hợp; LoaiTruLanNhau dòng 1 (cb_locked, to_locked)",
+      "steps": [
+        "Worker timeout kích hoạt đúng lúc worker callback đang giữ phiên",
+        "Chạy check_mutual_exclusion(model, 'cb_locked', 'to_locked')"
+      ],
+      "expected_result": "v0: Mutual exclusion VI PHẠM tại h6_tranh_chap (CWE-667); v1: ĐÚNG",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-12",
+      "requirement_ids": [
+        "REQ-14",
+        "REQ-15"
+      ],
+      "title": "Double free và use-after-free khi đóng phiên",
+      "preconditions": "close_payment_session (double-free), release_card_buffer (use-after-free)",
+      "steps": [
+        "Gộp mã C của 2 hàm",
+        "Chạy check_c_source()"
+      ],
+      "expected_result": "v0: double-free (CWE-415) và use-after-free (CWE-416); v1: 0 phát hiện",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-13",
+      "requirement_ids": [
+        "REQ-16",
+        "NFR-05",
+        "CON-07"
+      ],
+      "title": "Số thẻ còn trong bộ nhớ sau khi giải phóng",
+      "preconditions": "Mô hình con M6 (mo_hinh_con/M6_dong_phien.json)",
+      "steps": [
+        "Nạp M6_dong_phien.json vào tab Ch1",
+        "Chọn luồng M6-v0, kiểm tra AG(!secret_residue)",
+        "Chọn luồng M6-v1, kiểm tra lại"
+      ],
+      "expected_result": "M6-v0: VI PHẠM (CWE-226/244, CWE-14); M6-v1 (explicit_bzero trước free): ĐÚNG",
+      "priority": "HIGH"
+    },
+    {
+      "id": "TC-14",
+      "requirement_ids": [
+        "REQ-17",
+        "REQ-18"
+      ],
+      "title": "Toàn luồng thanh toán",
+      "preconditions": "Mô hình kết hợp (sheet MoHinhTrangThai)",
+      "steps": [
+        "Chạy '1) Sinh Kripke + kiểm chứng (Ch1)'",
+        "Kiểm tra deadlock, AF(flow_end), EF(payment_done), EF(input_rejected)"
+      ],
+      "expected_result": "Không deadlock; v0: AF(flow_end) và EF(input_rejected) VI PHẠM; v1: tất cả ĐÚNG",
+      "priority": "HIGH"
+    }
+  ]
+}
