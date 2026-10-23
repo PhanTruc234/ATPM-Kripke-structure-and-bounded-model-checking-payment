@@ -1,0 +1,14 @@
+# Chỉ đưa thư mục bài nộp của nhóm lên git
+/*
+!/.gitignore
+!/README.md
+!/Nhom07_BTL/
+
+# File sinh ra khi biên dịch/chạy
+Nhom07_BTL/**/build/
+__pycache__/
+*.pyc
+# File khóa tạm của Word
+~$*
+# Bản nén trùng với thư mục source/spec
+Nhom07_BTL/source/spec.zip
