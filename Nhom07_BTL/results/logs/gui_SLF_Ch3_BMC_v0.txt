@@ -1,0 +1,5 @@
+Độ sâu đã unroll: 48
+Vi pham assertion? True tai buoc 48
+Trạng thái vi phạm: {'i': 48, 'total': 2160000000}
+Trace (tối đa 10 bước đầu): [{'i': 0, 'total': 0}, {'i': 1, 'total': 45000000}, {'i': 2, 'total': 90000000}, {'i': 3, 'total': 135000000}, {'i': 4, 'total': 180000000}, {'i': 5, 'total': 225000000}, {'i': 6, 'total': 270000000}, {'i': 7, 'total': 315000000}, {'i': 8, 'total': 360000000}, {'i': 9, 'total': 405000000}]
+

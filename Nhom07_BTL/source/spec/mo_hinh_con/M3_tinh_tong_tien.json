@@ -1,0 +1,208 @@
+{
+  "title": "M3 — H3 Tính tổng tiền: total = Σ price*qty + ship − discount (int32, VND)",
+  "description": "Phân lớp miền số nguyên: trong miền / tràn trên khi nhân / tràn khi cộng dồn / âm / mẫu số bằng 0.",
+  "flows": {
+    "M3-v0: int32, không kiểm tra miền (CÓ LỖI)": {
+      "description": "int line = price * qty; total += line; total -= discount; per_month = total / months;",
+      "states": [
+        "m3_nhan_du_lieu",
+        "m3_dau_vao_hop_le",
+        "m3_dau_vao_am",
+        "m3_ky_han_0",
+        "m3_nhan_dong",
+        "m3_cong_don",
+        "m3_tong_hop_le",
+        "m3_tran_nhan",
+        "m3_tran_cong_don",
+        "m3_tong_am",
+        "m3_chia_0"
+      ],
+      "initial": [
+        "m3_nhan_du_lieu"
+      ],
+      "labeling": {
+        "m3_nhan_du_lieu": [
+          "receiving"
+        ],
+        "m3_dau_vao_hop_le": [
+          "input_ok"
+        ],
+        "m3_dau_vao_am": [
+          "negative_input"
+        ],
+        "m3_ky_han_0": [
+          "zero_divisor"
+        ],
+        "m3_nhan_dong": [
+          "multiplying"
+        ],
+        "m3_cong_don": [
+          "accumulating"
+        ],
+        "m3_tong_hop_le": [
+          "amount_ok",
+          "done"
+        ],
+        "m3_tran_nhan": [
+          "int_overflow",
+          "violation"
+        ],
+        "m3_tran_cong_don": [
+          "int_overflow",
+          "violation"
+        ],
+        "m3_tong_am": [
+          "negative_amount",
+          "violation"
+        ],
+        "m3_chia_0": [
+          "div_by_zero",
+          "violation"
+        ]
+      },
+      "transitions": [
+        [
+          "m3_nhan_du_lieu",
+          "m3_dau_vao_hop_le"
+        ],
+        [
+          "m3_nhan_du_lieu",
+          "m3_dau_vao_am"
+        ],
+        [
+          "m3_nhan_du_lieu",
+          "m3_ky_han_0"
+        ],
+        [
+          "m3_dau_vao_hop_le",
+          "m3_nhan_dong"
+        ],
+        [
+          "m3_nhan_dong",
+          "m3_cong_don"
+        ],
+        [
+          "m3_nhan_dong",
+          "m3_tran_nhan"
+        ],
+        [
+          "m3_cong_don",
+          "m3_tong_hop_le"
+        ],
+        [
+          "m3_cong_don",
+          "m3_tran_cong_don"
+        ],
+        [
+          "m3_dau_vao_am",
+          "m3_tong_am"
+        ],
+        [
+          "m3_ky_han_0",
+          "m3_chia_0"
+        ],
+        [
+          "m3_tong_hop_le",
+          "m3_tong_hop_le"
+        ],
+        [
+          "m3_tran_nhan",
+          "m3_tran_nhan"
+        ],
+        [
+          "m3_tran_cong_don",
+          "m3_tran_cong_don"
+        ],
+        [
+          "m3_tong_am",
+          "m3_tong_am"
+        ],
+        [
+          "m3_chia_0",
+          "m3_chia_0"
+        ]
+      ]
+    },
+    "M3-v1: kiểm tra miền + int64 + hạn mức": {
+      "description": "if (qty<1||qty>1000||price<0||price>50000000||discount<0||months<1||months>24) REJECT; int64_t line = (int64_t)price*qty; if (line > 50000000) REJECT; if (total + line > 2000000000) REJECT;",
+      "states": [
+        "m3_nhan_du_lieu",
+        "m3_dau_vao_hop_le",
+        "m3_nhan_dong",
+        "m3_cong_don",
+        "m3_tong_hop_le",
+        "m3_tu_choi"
+      ],
+      "initial": [
+        "m3_nhan_du_lieu"
+      ],
+      "labeling": {
+        "m3_nhan_du_lieu": [
+          "receiving"
+        ],
+        "m3_dau_vao_hop_le": [
+          "input_ok"
+        ],
+        "m3_nhan_dong": [
+          "multiplying"
+        ],
+        "m3_cong_don": [
+          "accumulating"
+        ],
+        "m3_tong_hop_le": [
+          "amount_ok",
+          "done"
+        ],
+        "m3_tu_choi": [
+          "input_rejected",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m3_nhan_du_lieu",
+          "m3_dau_vao_hop_le"
+        ],
+        [
+          "m3_nhan_du_lieu",
+          "m3_tu_choi"
+        ],
+        [
+          "m3_dau_vao_hop_le",
+          "m3_nhan_dong"
+        ],
+        [
+          "m3_nhan_dong",
+          "m3_cong_don"
+        ],
+        [
+          "m3_nhan_dong",
+          "m3_tu_choi"
+        ],
+        [
+          "m3_cong_don",
+          "m3_tong_hop_le"
+        ],
+        [
+          "m3_cong_don",
+          "m3_tu_choi"
+        ],
+        [
+          "m3_tong_hop_le",
+          "m3_tong_hop_le"
+        ],
+        [
+          "m3_tu_choi",
+          "m3_tu_choi"
+        ]
+      ]
+    }
+  },
+  "suggested_ctl_formulas": [
+    "AG(!int_overflow)",
+    "AG(!negative_amount)",
+    "AG(!div_by_zero)",
+    "AF(done)",
+    "EF(amount_ok)"
+  ]
+}

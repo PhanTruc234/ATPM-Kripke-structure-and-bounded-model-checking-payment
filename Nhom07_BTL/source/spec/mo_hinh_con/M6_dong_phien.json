@@ -1,0 +1,208 @@
+{
+  "title": "M6 — H6 Đóng phiên: worker callback và worker timeout dùng chung PaymentSession *s",
+  "description": "Xét MỌI thứ tự xen kẽ của 2 worker (interleaving) và vòng đời của s, card: giữ khóa / giải phóng / dùng lại.",
+  "flows": {
+    "M6-v0: không khóa, memset trước free (CÓ LỖI)": {
+      "description": "on_callback(){ s->status = PAID; close(s); }  on_timeout(){ s->status = CANCELLED; close(s); }  close(s){ memset(s->card,0,16); free(s->card); free(s); }",
+      "states": [
+        "m6_phien_mo",
+        "m6_cb_giu",
+        "m6_to_giu",
+        "m6_tranh_chap",
+        "m6_double_free",
+        "m6_uaf",
+        "m6_giai_phong",
+        "m6_con_so_the",
+        "m6_da_dong"
+      ],
+      "initial": [
+        "m6_phien_mo"
+      ],
+      "labeling": {
+        "m6_phien_mo": [
+          "sess_free"
+        ],
+        "m6_cb_giu": [
+          "cb_locked"
+        ],
+        "m6_to_giu": [
+          "to_locked"
+        ],
+        "m6_tranh_chap": [
+          "cb_locked",
+          "to_locked",
+          "race",
+          "violation"
+        ],
+        "m6_double_free": [
+          "double_free",
+          "violation"
+        ],
+        "m6_uaf": [
+          "use_after_free",
+          "violation"
+        ],
+        "m6_giai_phong": [
+          "releasing"
+        ],
+        "m6_con_so_the": [
+          "secret_residue",
+          "violation"
+        ],
+        "m6_da_dong": [
+          "session_freed",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m6_phien_mo",
+          "m6_cb_giu"
+        ],
+        [
+          "m6_phien_mo",
+          "m6_to_giu"
+        ],
+        [
+          "m6_cb_giu",
+          "m6_giai_phong"
+        ],
+        [
+          "m6_cb_giu",
+          "m6_tranh_chap"
+        ],
+        [
+          "m6_to_giu",
+          "m6_giai_phong"
+        ],
+        [
+          "m6_to_giu",
+          "m6_tranh_chap"
+        ],
+        [
+          "m6_tranh_chap",
+          "m6_double_free"
+        ],
+        [
+          "m6_tranh_chap",
+          "m6_uaf"
+        ],
+        [
+          "m6_giai_phong",
+          "m6_con_so_the"
+        ],
+        [
+          "m6_giai_phong",
+          "m6_da_dong"
+        ],
+        [
+          "m6_da_dong",
+          "m6_da_dong"
+        ],
+        [
+          "m6_da_dong",
+          "m6_uaf"
+        ],
+        [
+          "m6_double_free",
+          "m6_double_free"
+        ],
+        [
+          "m6_uaf",
+          "m6_uaf"
+        ],
+        [
+          "m6_con_so_the",
+          "m6_con_so_the"
+        ]
+      ]
+    },
+    "M6-v1: mutex + status CLOSED + explicit_bzero": {
+      "description": "lock(s->mtx); if (s->status == CLOSED) { unlock; return; } ... explicit_bzero(s->card,16); free(s->card); s->status = CLOSED; unlock; (worker đến sau thấy CLOSED thì bỏ qua)",
+      "states": [
+        "m6_phien_mo",
+        "m6_cb_giu",
+        "m6_to_giu",
+        "m6_giai_phong",
+        "m6_xoa_trang",
+        "m6_da_dong",
+        "m6_den_sau_bo_qua"
+      ],
+      "initial": [
+        "m6_phien_mo"
+      ],
+      "labeling": {
+        "m6_phien_mo": [
+          "sess_free"
+        ],
+        "m6_cb_giu": [
+          "cb_locked"
+        ],
+        "m6_to_giu": [
+          "to_locked"
+        ],
+        "m6_giai_phong": [
+          "releasing"
+        ],
+        "m6_xoa_trang": [
+          "wiped"
+        ],
+        "m6_da_dong": [
+          "session_freed",
+          "done"
+        ],
+        "m6_den_sau_bo_qua": [
+          "late_ignored",
+          "session_freed",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m6_phien_mo",
+          "m6_cb_giu"
+        ],
+        [
+          "m6_phien_mo",
+          "m6_to_giu"
+        ],
+        [
+          "m6_cb_giu",
+          "m6_giai_phong"
+        ],
+        [
+          "m6_to_giu",
+          "m6_giai_phong"
+        ],
+        [
+          "m6_giai_phong",
+          "m6_xoa_trang"
+        ],
+        [
+          "m6_xoa_trang",
+          "m6_da_dong"
+        ],
+        [
+          "m6_da_dong",
+          "m6_den_sau_bo_qua"
+        ],
+        [
+          "m6_den_sau_bo_qua",
+          "m6_den_sau_bo_qua"
+        ]
+      ]
+    }
+  },
+  "suggested_ctl_formulas": [
+    "AG(!race)",
+    "AG(!double_free)",
+    "AG(!use_after_free)",
+    "AG(!secret_residue)",
+    "AF(session_freed)",
+    "EF(cb_locked)"
+  ],
+  "suggested_mutex_atoms": [
+    "cb_locked",
+    "to_locked"
+  ]
+}

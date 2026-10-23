@@ -1,0 +1,27 @@
+-> Chuyển sang kiểm chứng trên luồng 'M6-v0: không khóa, memset trước free (CÓ LỖI)' (9 trang thai)
+Cong thuc 'AG(!race)' -> SAI (thoa man tai: ['m6_con_so_the', 'm6_da_dong', 'm6_double_free', 'm6_giai_phong', 'm6_uaf'])
+Cong thuc 'AG(!double_free)' -> SAI (thoa man tai: ['m6_con_so_the', 'm6_da_dong', 'm6_giai_phong', 'm6_uaf'])
+Cong thuc 'AG(!use_after_free)' -> SAI (thoa man tai: ['m6_con_so_the', 'm6_double_free'])
+Cong thuc 'AG(!secret_residue)' -> SAI (thoa man tai: ['m6_da_dong', 'm6_double_free', 'm6_tranh_chap', 'm6_uaf'])
+Cong thuc 'AF(session_freed)' -> SAI (thoa man tai: ['m6_da_dong'])
+Cong thuc 'EF(cb_locked)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_phien_mo', 'm6_to_giu', 'm6_tranh_chap'])
+Cong thuc 'EF(race)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_phien_mo', 'm6_to_giu', 'm6_tranh_chap'])
+Cong thuc 'AG(!violation)' -> SAI (thoa man tai: [])
+Cong thuc 'EF(violation)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_con_so_the', 'm6_da_dong', 'm6_double_free', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_tranh_chap', 'm6_uaf'])
+Cong thuc 'AF(cb_locked)' -> SAI (thoa man tai: ['m6_cb_giu', 'm6_tranh_chap'])
+Cong thuc 'AG(!cb_locked)' -> SAI (thoa man tai: ['m6_con_so_the', 'm6_da_dong', 'm6_double_free', 'm6_giai_phong', 'm6_uaf'])
+Cong thuc 'EG(!cb_locked)' -> DUNG (thoa man tai: ['m6_con_so_the', 'm6_da_dong', 'm6_double_free', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_uaf'])
+Cong thuc 'EF(done)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu'])
+Cong thuc 'AF(done)' -> SAI (thoa man tai: ['m6_da_dong'])
+Cong thuc 'AG(done)' -> SAI (thoa man tai: [])
+Cong thuc 'AG(!done)' -> SAI (thoa man tai: ['m6_con_so_the', 'm6_double_free', 'm6_tranh_chap', 'm6_uaf'])
+Cong thuc 'EG(!done)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_con_so_the', 'm6_double_free', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_tranh_chap', 'm6_uaf'])
+Cong thuc 'EF(double_free)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_double_free', 'm6_phien_mo', 'm6_to_giu', 'm6_tranh_chap'])
+Trạng thái deadlock (không có dịch chuyển đi ra): Không có
+[Mutual exclusion] AG(!(cb_locked & to_locked))
+   Trạng thái có nhãn 'cb_locked': ['m6_cb_giu', 'm6_tranh_chap']
+   Trạng thái có nhãn 'to_locked': ['m6_to_giu', 'm6_tranh_chap']
+   Trạng thái có CẢ HAI cùng lúc: ['m6_tranh_chap']
+=> Loại trừ lẫn nhau GIỮ ĐƯỢC? False | có thể vi phạm từ: ['m6_cb_giu', 'm6_phien_mo', 'm6_to_giu', 'm6_tranh_chap']
+   (4 trạng thái nằm trong tập reachable-từ-S0: ['m6_cb_giu', 'm6_phien_mo', 'm6_to_giu', 'm6_tranh_chap'])
+

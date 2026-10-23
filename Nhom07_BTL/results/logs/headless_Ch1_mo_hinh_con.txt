@@ -1,0 +1,94 @@
+KẾT QUẢ KIỂM CHỨNG 6 MÔ HÌNH CON — chạy bằng core.kripke của SecLabFramework (tab Ch1)
+========================================================================================
+
+### M1_tiep_nhan_yeu_cau.json — M1 — H1 Tiếp nhận yêu cầu: chép mã đơn (tối đa 16 ký tự) vào bộ đệm
+  [M1-v0: strcpy vào order_id[16] (CÓ LỖI)]  (7 trạng thái)  deadlock: không có
+     AG(!buffer_overflow)     -> VI PHẠM
+     AG(!off_by_one)          -> VI PHẠM
+     AG(!truncated)           -> ĐÚNG
+     AF(done)                 -> VI PHẠM
+     EF(len_eq_cap)           -> ĐÚNG
+  [M1-v1a: bản 'an toàn' phần mềm sinh — strncpy(buf,src,15) (CẮT CỤT)]  (6 trạng thái)  deadlock: không có
+     AG(!buffer_overflow)     -> ĐÚNG
+     AG(!off_by_one)          -> ĐÚNG
+     AG(!truncated)           -> VI PHẠM
+     AF(done)                 -> VI PHẠM
+     EF(len_eq_cap)           -> ĐÚNG
+  [M1-v1b: bản sửa của nhóm — buf[17] + strnlen + từ chối]  (6 trạng thái)  deadlock: không có
+     AG(!buffer_overflow)     -> ĐÚNG
+     AG(!off_by_one)          -> ĐÚNG
+     AG(!truncated)           -> ĐÚNG
+     AF(done)                 -> ĐÚNG
+     EF(len_eq_cap)           -> ĐÚNG
+
+### M2_tao_don_cap_phat.json — M2 — H2 Tạo đơn: items = malloc(n * sizeof(Item)), sizeof(Item) = 48
+  [M2-v0: malloc không kiểm tra (CÓ LỖI)]  (10 trạng thái)  deadlock: không có
+     AG(!null_deref)          -> VI PHẠM
+     AG(!heap_overflow)       -> VI PHẠM
+     AG(!uninit_read)         -> VI PHẠM
+     AF(done)                 -> VI PHẠM
+     EF(ptr_null)             -> ĐÚNG
+  [M2-v1: kiểm tra n, calloc, kiểm tra NULL]  (6 trạng thái)  deadlock: không có
+     AG(!null_deref)          -> ĐÚNG
+     AG(!heap_overflow)       -> ĐÚNG
+     AG(!uninit_read)         -> ĐÚNG
+     AF(done)                 -> ĐÚNG
+     EF(ptr_null)             -> ĐÚNG
+
+### M3_tinh_tong_tien.json — M3 — H3 Tính tổng tiền: total = Σ price*qty + ship − discount (int32, VND)
+  [M3-v0: int32, không kiểm tra miền (CÓ LỖI)]  (11 trạng thái)  deadlock: không có
+     AG(!int_overflow)        -> VI PHẠM
+     AG(!negative_amount)     -> VI PHẠM
+     AG(!div_by_zero)         -> VI PHẠM
+     AF(done)                 -> VI PHẠM
+     EF(amount_ok)            -> ĐÚNG
+  [M3-v1: kiểm tra miền + int64 + hạn mức]  (6 trạng thái)  deadlock: không có
+     AG(!int_overflow)        -> ĐÚNG
+     AG(!negative_amount)     -> ĐÚNG
+     AG(!div_by_zero)         -> ĐÚNG
+     AF(done)                 -> ĐÚNG
+     EF(amount_ok)            -> ĐÚNG
+
+### M4_nhan_callback.json — M4 — H4 Nhận callback (IPN) từ cổng thanh toán
+  [M4-v0: strcpy txn_id[20] + nhánh debug (CÓ LỖI)]  (9 trạng thái)  deadlock: không có
+     AG(!buffer_overflow)     -> VI PHẠM
+     AG(!hidden_bypass)       -> VI PHẠM
+     AF(done)                 -> VI PHẠM
+     EF(accepted)             -> ĐÚNG
+     EF(callback_rejected)    -> ĐÚNG
+  [M4-v1: kiểm tra độ dài, xóa nhánh ẩn]  (6 trạng thái)  deadlock: không có
+     AG(!buffer_overflow)     -> ĐÚNG
+     AG(!hidden_bypass)       -> ĐÚNG
+     AF(done)                 -> ĐÚNG
+     EF(accepted)             -> ĐÚNG
+     EF(callback_rejected)    -> ĐÚNG
+
+### M5_ghi_log.json — M5 — H5 Ghi log giao dịch: e = malloc(sizeof(LogEntry))
+  [M5-v0: printf(msg) + return sớm (CÓ LỖI)]  (8 trạng thái)  deadlock: không có
+     AG(!mem_leak)            -> VI PHẠM
+     AG(!format_string)       -> VI PHẠM
+     AF(freed)                -> VI PHẠM
+     EF(error_path)           -> ĐÚNG
+  [M5-v1: printf("%s") + goto cleanup]  (6 trạng thái)  deadlock: không có
+     AG(!mem_leak)            -> ĐÚNG
+     AG(!format_string)       -> ĐÚNG
+     AF(freed)                -> ĐÚNG
+     EF(error_path)           -> ĐÚNG
+
+### M6_dong_phien.json — M6 — H6 Đóng phiên: worker callback và worker timeout dùng chung PaymentSession *s
+  [M6-v0: không khóa, memset trước free (CÓ LỖI)]  (9 trạng thái)  deadlock: không có
+     AG(!race)                -> VI PHẠM
+     AG(!double_free)         -> VI PHẠM
+     AG(!use_after_free)      -> VI PHẠM
+     AG(!secret_residue)      -> VI PHẠM
+     AF(session_freed)        -> VI PHẠM
+     EF(cb_locked)            -> ĐÚNG
+     Mutex(cb_locked, to_locked) -> VI PHẠM
+  [M6-v1: mutex + status CLOSED + explicit_bzero]  (7 trạng thái)  deadlock: không có
+     AG(!race)                -> ĐÚNG
+     AG(!double_free)         -> ĐÚNG
+     AG(!use_after_free)      -> ĐÚNG
+     AG(!secret_residue)      -> ĐÚNG
+     AF(session_freed)        -> ĐÚNG
+     EF(cb_locked)            -> ĐÚNG
+     Mutex(cb_locked, to_locked) -> ĐÚNG

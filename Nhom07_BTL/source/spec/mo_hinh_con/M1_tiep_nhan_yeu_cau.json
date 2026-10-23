@@ -1,0 +1,233 @@
+{
+  "title": "M1 — H1 Tiếp nhận yêu cầu: chép mã đơn (tối đa 16 ký tự) vào bộ đệm",
+  "description": "Phân lớp độ dài L của mã đơn so với dung lượng bộ đệm N=16: L<16, L=16, L>16 phủ MỌI độ dài. So sánh 3 phiên bản: v0 strcpy, v1a bản 'an toàn' do phần mềm sinh (strncpy 15 + '\\0'), v1b bản sửa của nhóm.",
+  "flows": {
+    "M1-v0: strcpy vào order_id[16] (CÓ LỖI)": {
+      "description": "char order_id[16]; strcpy(order_id, src);",
+      "states": [
+        "m1_nhan_chuoi",
+        "m1_len_nho",
+        "m1_len_bang_16",
+        "m1_len_lon",
+        "m1_chep_dung",
+        "m1_tran_1_byte",
+        "m1_tran_nhieu_byte"
+      ],
+      "initial": [
+        "m1_nhan_chuoi"
+      ],
+      "labeling": {
+        "m1_nhan_chuoi": [
+          "receiving"
+        ],
+        "m1_len_nho": [
+          "len_lt_cap"
+        ],
+        "m1_len_bang_16": [
+          "len_eq_cap"
+        ],
+        "m1_len_lon": [
+          "len_gt_cap"
+        ],
+        "m1_chep_dung": [
+          "copied_ok",
+          "done"
+        ],
+        "m1_tran_1_byte": [
+          "buffer_overflow",
+          "off_by_one",
+          "violation"
+        ],
+        "m1_tran_nhieu_byte": [
+          "buffer_overflow",
+          "violation"
+        ]
+      },
+      "transitions": [
+        [
+          "m1_nhan_chuoi",
+          "m1_len_nho"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_bang_16"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_lon"
+        ],
+        [
+          "m1_len_nho",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_len_bang_16",
+          "m1_tran_1_byte"
+        ],
+        [
+          "m1_len_lon",
+          "m1_tran_nhieu_byte"
+        ],
+        [
+          "m1_chep_dung",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_tran_1_byte",
+          "m1_tran_1_byte"
+        ],
+        [
+          "m1_tran_nhieu_byte",
+          "m1_tran_nhieu_byte"
+        ]
+      ]
+    },
+    "M1-v1a: bản 'an toàn' phần mềm sinh — strncpy(buf,src,15) (CẮT CỤT)": {
+      "description": "char buffer[16]; strncpy(buffer, src, sizeof(buffer)-1); buffer[15] = '\\0';",
+      "states": [
+        "m1_nhan_chuoi",
+        "m1_len_nho",
+        "m1_len_bang_16",
+        "m1_len_lon",
+        "m1_chep_dung",
+        "m1_cat_cut"
+      ],
+      "initial": [
+        "m1_nhan_chuoi"
+      ],
+      "labeling": {
+        "m1_nhan_chuoi": [
+          "receiving"
+        ],
+        "m1_len_nho": [
+          "len_lt_cap"
+        ],
+        "m1_len_bang_16": [
+          "len_eq_cap"
+        ],
+        "m1_len_lon": [
+          "len_gt_cap"
+        ],
+        "m1_chep_dung": [
+          "copied_ok",
+          "done"
+        ],
+        "m1_cat_cut": [
+          "truncated",
+          "violation"
+        ]
+      },
+      "transitions": [
+        [
+          "m1_nhan_chuoi",
+          "m1_len_nho"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_bang_16"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_lon"
+        ],
+        [
+          "m1_len_nho",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_len_bang_16",
+          "m1_cat_cut"
+        ],
+        [
+          "m1_len_lon",
+          "m1_cat_cut"
+        ],
+        [
+          "m1_chep_dung",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_cat_cut",
+          "m1_cat_cut"
+        ]
+      ]
+    },
+    "M1-v1b: bản sửa của nhóm — buf[17] + strnlen + từ chối": {
+      "description": "char order_id[17]; if (strnlen(src, 17) > 16) return REJECT; memcpy(order_id, src, len + 1);",
+      "states": [
+        "m1_nhan_chuoi",
+        "m1_len_nho",
+        "m1_len_bang_16",
+        "m1_len_lon",
+        "m1_chep_dung",
+        "m1_tu_choi"
+      ],
+      "initial": [
+        "m1_nhan_chuoi"
+      ],
+      "labeling": {
+        "m1_nhan_chuoi": [
+          "receiving"
+        ],
+        "m1_len_nho": [
+          "len_lt_cap"
+        ],
+        "m1_len_bang_16": [
+          "len_eq_cap"
+        ],
+        "m1_len_lon": [
+          "len_gt_cap"
+        ],
+        "m1_chep_dung": [
+          "copied_ok",
+          "done"
+        ],
+        "m1_tu_choi": [
+          "input_rejected",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m1_nhan_chuoi",
+          "m1_len_nho"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_bang_16"
+        ],
+        [
+          "m1_nhan_chuoi",
+          "m1_len_lon"
+        ],
+        [
+          "m1_len_nho",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_len_bang_16",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_len_lon",
+          "m1_tu_choi"
+        ],
+        [
+          "m1_chep_dung",
+          "m1_chep_dung"
+        ],
+        [
+          "m1_tu_choi",
+          "m1_tu_choi"
+        ]
+      ]
+    }
+  },
+  "suggested_ctl_formulas": [
+    "AG(!buffer_overflow)",
+    "AG(!off_by_one)",
+    "AG(!truncated)",
+    "AF(done)",
+    "EF(len_eq_cap)"
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "title": "M2 — H2 Tạo đơn: items = malloc(n * sizeof(Item)), sizeof(Item) = 48",
+  "description": "Vòng đời con trỏ: NULL / đã cấp phát chưa khởi tạo / đã khởi tạo; cộng thêm phân lớp n (hợp lệ 1..100 hoặc bất thường).",
+  "flows": {
+    "M2-v0: malloc không kiểm tra (CÓ LỖI)": {
+      "description": "int bytes = n * (int)sizeof(Item); Item *items = malloc(bytes); items[0].qty = q; if (items[i].status == PAID) ...",
+      "states": [
+        "m2_nhan_n",
+        "m2_n_hop_le",
+        "m2_n_bat_thuong",
+        "m2_malloc_null",
+        "m2_cap_phat_chua_kt",
+        "m2_da_khoi_tao",
+        "m2_null_deref",
+        "m2_tran_heap",
+        "m2_doc_rac",
+        "m2_su_dung"
+      ],
+      "initial": [
+        "m2_nhan_n"
+      ],
+      "labeling": {
+        "m2_nhan_n": [
+          "receiving"
+        ],
+        "m2_n_hop_le": [
+          "size_ok"
+        ],
+        "m2_n_bat_thuong": [
+          "size_wrong"
+        ],
+        "m2_malloc_null": [
+          "ptr_null"
+        ],
+        "m2_cap_phat_chua_kt": [
+          "allocated",
+          "uninitialized"
+        ],
+        "m2_da_khoi_tao": [
+          "allocated",
+          "initialized"
+        ],
+        "m2_null_deref": [
+          "null_deref",
+          "violation"
+        ],
+        "m2_tran_heap": [
+          "heap_overflow",
+          "violation"
+        ],
+        "m2_doc_rac": [
+          "uninit_read",
+          "violation"
+        ],
+        "m2_su_dung": [
+          "in_use",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m2_nhan_n",
+          "m2_n_hop_le"
+        ],
+        [
+          "m2_nhan_n",
+          "m2_n_bat_thuong"
+        ],
+        [
+          "m2_n_hop_le",
+          "m2_malloc_null"
+        ],
+        [
+          "m2_n_hop_le",
+          "m2_cap_phat_chua_kt"
+        ],
+        [
+          "m2_n_bat_thuong",
+          "m2_tran_heap"
+        ],
+        [
+          "m2_malloc_null",
+          "m2_null_deref"
+        ],
+        [
+          "m2_cap_phat_chua_kt",
+          "m2_doc_rac"
+        ],
+        [
+          "m2_cap_phat_chua_kt",
+          "m2_da_khoi_tao"
+        ],
+        [
+          "m2_da_khoi_tao",
+          "m2_su_dung"
+        ],
+        [
+          "m2_null_deref",
+          "m2_null_deref"
+        ],
+        [
+          "m2_tran_heap",
+          "m2_tran_heap"
+        ],
+        [
+          "m2_doc_rac",
+          "m2_doc_rac"
+        ],
+        [
+          "m2_su_dung",
+          "m2_su_dung"
+        ]
+      ]
+    },
+    "M2-v1: kiểm tra n, calloc, kiểm tra NULL": {
+      "description": "if (n < 1 || n > 100) return REJECT; Item *items = calloc(n, sizeof(Item)); if (!items) return REJECT;",
+      "states": [
+        "m2_nhan_n",
+        "m2_n_hop_le",
+        "m2_malloc_null",
+        "m2_da_khoi_tao",
+        "m2_su_dung",
+        "m2_tu_choi"
+      ],
+      "initial": [
+        "m2_nhan_n"
+      ],
+      "labeling": {
+        "m2_nhan_n": [
+          "receiving"
+        ],
+        "m2_n_hop_le": [
+          "size_ok"
+        ],
+        "m2_malloc_null": [
+          "ptr_null"
+        ],
+        "m2_da_khoi_tao": [
+          "allocated",
+          "initialized"
+        ],
+        "m2_su_dung": [
+          "in_use",
+          "done"
+        ],
+        "m2_tu_choi": [
+          "input_rejected",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m2_nhan_n",
+          "m2_n_hop_le"
+        ],
+        [
+          "m2_nhan_n",
+          "m2_tu_choi"
+        ],
+        [
+          "m2_n_hop_le",
+          "m2_malloc_null"
+        ],
+        [
+          "m2_n_hop_le",
+          "m2_da_khoi_tao"
+        ],
+        [
+          "m2_malloc_null",
+          "m2_tu_choi"
+        ],
+        [
+          "m2_da_khoi_tao",
+          "m2_su_dung"
+        ],
+        [
+          "m2_su_dung",
+          "m2_su_dung"
+        ],
+        [
+          "m2_tu_choi",
+          "m2_tu_choi"
+        ]
+      ]
+    }
+  },
+  "suggested_ctl_formulas": [
+    "AG(!null_deref)",
+    "AG(!heap_overflow)",
+    "AG(!uninit_read)",
+    "AF(done)",
+    "EF(ptr_null)"
+  ]
+}

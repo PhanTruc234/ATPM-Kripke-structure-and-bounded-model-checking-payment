@@ -1,0 +1,170 @@
+{
+  "title": "M5 — H5 Ghi log giao dịch: e = malloc(sizeof(LogEntry))",
+  "description": "Vòng đời con trỏ bản ghi log trên nhánh thường và nhánh lỗi; cách in nội dung log.",
+  "flows": {
+    "M5-v0: printf(msg) + return sớm (CÓ LỖI)": {
+      "description": "e = malloc(...); snprintf(e->msg, ...); printf(e->msg); if (fwrite(...) != 1) return -1; free(e);",
+      "states": [
+        "m5_bat_dau",
+        "m5_cap_phat",
+        "m5_ghi_noi_dung",
+        "m5_in_an_toan",
+        "m5_format_string",
+        "m5_loi_ghi_dia",
+        "m5_ro_ri",
+        "m5_giai_phong"
+      ],
+      "initial": [
+        "m5_bat_dau"
+      ],
+      "labeling": {
+        "m5_bat_dau": [
+          "receiving"
+        ],
+        "m5_cap_phat": [
+          "allocated"
+        ],
+        "m5_ghi_noi_dung": [
+          "allocated",
+          "in_use"
+        ],
+        "m5_in_an_toan": [
+          "allocated",
+          "printed"
+        ],
+        "m5_format_string": [
+          "format_string",
+          "violation"
+        ],
+        "m5_loi_ghi_dia": [
+          "allocated",
+          "error_path"
+        ],
+        "m5_ro_ri": [
+          "mem_leak",
+          "violation"
+        ],
+        "m5_giai_phong": [
+          "freed",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m5_bat_dau",
+          "m5_cap_phat"
+        ],
+        [
+          "m5_cap_phat",
+          "m5_ghi_noi_dung"
+        ],
+        [
+          "m5_ghi_noi_dung",
+          "m5_in_an_toan"
+        ],
+        [
+          "m5_ghi_noi_dung",
+          "m5_format_string"
+        ],
+        [
+          "m5_ghi_noi_dung",
+          "m5_loi_ghi_dia"
+        ],
+        [
+          "m5_in_an_toan",
+          "m5_giai_phong"
+        ],
+        [
+          "m5_loi_ghi_dia",
+          "m5_ro_ri"
+        ],
+        [
+          "m5_format_string",
+          "m5_format_string"
+        ],
+        [
+          "m5_ro_ri",
+          "m5_ro_ri"
+        ],
+        [
+          "m5_giai_phong",
+          "m5_giai_phong"
+        ]
+      ]
+    },
+    "M5-v1: printf(\"%s\") + goto cleanup": {
+      "description": "printf(\"%s\", e->msg); if (fwrite(...) != 1) { rc = -1; goto cleanup; } cleanup: free(e); e = NULL;",
+      "states": [
+        "m5_bat_dau",
+        "m5_cap_phat",
+        "m5_ghi_noi_dung",
+        "m5_in_an_toan",
+        "m5_loi_ghi_dia",
+        "m5_giai_phong"
+      ],
+      "initial": [
+        "m5_bat_dau"
+      ],
+      "labeling": {
+        "m5_bat_dau": [
+          "receiving"
+        ],
+        "m5_cap_phat": [
+          "allocated"
+        ],
+        "m5_ghi_noi_dung": [
+          "allocated",
+          "in_use"
+        ],
+        "m5_in_an_toan": [
+          "allocated",
+          "printed"
+        ],
+        "m5_loi_ghi_dia": [
+          "allocated",
+          "error_path"
+        ],
+        "m5_giai_phong": [
+          "freed",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m5_bat_dau",
+          "m5_cap_phat"
+        ],
+        [
+          "m5_cap_phat",
+          "m5_ghi_noi_dung"
+        ],
+        [
+          "m5_ghi_noi_dung",
+          "m5_in_an_toan"
+        ],
+        [
+          "m5_ghi_noi_dung",
+          "m5_loi_ghi_dia"
+        ],
+        [
+          "m5_in_an_toan",
+          "m5_giai_phong"
+        ],
+        [
+          "m5_loi_ghi_dia",
+          "m5_giai_phong"
+        ],
+        [
+          "m5_giai_phong",
+          "m5_giai_phong"
+        ]
+      ]
+    }
+  },
+  "suggested_ctl_formulas": [
+    "AG(!mem_leak)",
+    "AG(!format_string)",
+    "AF(freed)",
+    "EF(error_path)"
+  ]
+}

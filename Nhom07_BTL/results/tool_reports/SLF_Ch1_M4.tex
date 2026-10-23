@@ -1,0 +1,50 @@
+% M4-v0: strcpy txn_id[20] + nhánh debug (CÓ LỖI)
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=gray!15] (nd_m4_txn_hop_le) at (0.46,1.97) {m4\_txn\_hop\_le\\{\tiny len\_ok}};
+  \node[fill=gray!15] (nd_m4_kiem_chu_ky) at (-0.36,0.11) {m4\_kiem\_chu\_ky\\{\tiny verifying}};
+  \node[fill=gray!15] (nd_m4_txn_qua_dai) at (-0.31,-1.74) {m4\_txn\_qua\_dai\\{\tiny len\_gt\_cap}};
+  \node[fill=blue!25] (nd_m4_nhan_callback) at (-1.07,0.34) {m4\_nhan\_callback\\{\tiny receiving}};
+  \node[fill=red!35] (nd_m4_nhanh_an) at (1.62,1.76) {m4\_nhanh\_an\\{\tiny hidden\_bypass,violation}};
+  \node[fill=gray!15] (nd_m4_chu_ky_dung) at (-0.47,0.71) {m4\_chu\_ky\_dung\\{\tiny verified}};
+  \node[fill=red!35] (nd_m4_tran_txn) at (1.91,-1.03) {m4\_tran\_txn\\{\tiny buffer\_overflow,violation}};
+  \node[fill=gray!15] (nd_m4_chap_nhan) at (0.43,-1.70) {m4\_chap\_nhan\\{\tiny accepted,done}};
+  \node[fill=gray!15] (nd_m4_tu_choi) at (-2.20,-0.41) {m4\_tu\_choi\\{\tiny callback\_rejected,done}};
+  \draw (nd_m4_txn_hop_le) -- (nd_m4_nhanh_an);
+  \draw (nd_m4_txn_hop_le) -- (nd_m4_kiem_chu_ky);
+  \draw (nd_m4_kiem_chu_ky) -- (nd_m4_tu_choi);
+  \draw (nd_m4_kiem_chu_ky) -- (nd_m4_chu_ky_dung);
+  \draw (nd_m4_txn_qua_dai) -- (nd_m4_tran_txn);
+  \draw (nd_m4_nhan_callback) -- (nd_m4_txn_hop_le);
+  \draw (nd_m4_nhan_callback) -- (nd_m4_txn_qua_dai);
+  \draw (nd_m4_nhanh_an) -- (nd_m4_nhanh_an);
+  \draw (nd_m4_chu_ky_dung) -- (nd_m4_chap_nhan);
+  \draw (nd_m4_tran_txn) -- (nd_m4_tran_txn);
+  \draw (nd_m4_chap_nhan) -- (nd_m4_chap_nhan);
+  \draw (nd_m4_tu_choi) -- (nd_m4_tu_choi);
+\end{tikzpicture}
+
+% M4-v1: kiểm tra độ dài, xóa nhánh ẩn
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=gray!15] (nd_m4_txn_hop_le) at (0.90,0.05) {m4\_txn\_hop\_le\\{\tiny len\_ok}};
+  \node[fill=gray!15] (nd_m4_kiem_chu_ky) at (-0.65,-0.75) {m4\_kiem\_chu\_ky\\{\tiny verifying}};
+  \node[fill=blue!25] (nd_m4_nhan_callback) at (-0.99,-0.09) {m4\_nhan\_callback\\{\tiny receiving}};
+  \node[fill=gray!15] (nd_m4_chu_ky_dung) at (0.12,-0.02) {m4\_chu\_ky\_dung\\{\tiny verified}};
+  \node[fill=gray!15] (nd_m4_chap_nhan) at (2.20,-0.42) {m4\_chap\_nhan\\{\tiny accepted,done}};
+  \node[fill=gray!15] (nd_m4_tu_choi) at (-1.58,1.22) {m4\_tu\_choi\\{\tiny callback\_rejected,done}};
+  \draw (nd_m4_txn_hop_le) -- (nd_m4_kiem_chu_ky);
+  \draw (nd_m4_kiem_chu_ky) -- (nd_m4_tu_choi);
+  \draw (nd_m4_kiem_chu_ky) -- (nd_m4_chu_ky_dung);
+  \draw (nd_m4_nhan_callback) -- (nd_m4_txn_hop_le);
+  \draw (nd_m4_nhan_callback) -- (nd_m4_tu_choi);
+  \draw (nd_m4_chu_ky_dung) -- (nd_m4_chap_nhan);
+  \draw (nd_m4_chap_nhan) -- (nd_m4_chap_nhan);
+  \draw (nd_m4_tu_choi) -- (nd_m4_tu_choi);
+\end{tikzpicture}

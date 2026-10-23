@@ -1,0 +1,56 @@
+% M3-v0: int32, không kiểm tra miền (CÓ LỖI)
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=blue!25] (nd_m3_nhan_du_lieu) at (0.02,0.40) {m3\_nhan\_du\_lieu\\{\tiny receiving}};
+  \node[fill=red!35] (nd_m3_tong_am) at (2.02,0.59) {m3\_tong\_am\\{\tiny negative\_amount,violation}};
+  \node[fill=gray!15] (nd_m3_dau_vao_am) at (0.15,-0.63) {m3\_dau\_vao\_am\\{\tiny negative\_input}};
+  \node[fill=red!35] (nd_m3_tran_cong_don) at (-1.89,1.24) {m3\_tran\_cong\_don\\{\tiny int\_overflow,violation}};
+  \node[fill=gray!15] (nd_m3_dau_vao_hop_le) at (1.21,0.21) {m3\_dau\_vao\_hop\_le\\{\tiny input\_ok}};
+  \node[fill=gray!15] (nd_m3_tong_hop_le) at (-0.94,2.20) {m3\_tong\_hop\_le\\{\tiny amount\_ok,done}};
+  \node[fill=red!35] (nd_m3_tran_nhan) at (2.02,-0.82) {m3\_tran\_nhan\\{\tiny int\_overflow,violation}};
+  \node[fill=gray!15] (nd_m3_cong_don) at (-1.72,0.12) {m3\_cong\_don\\{\tiny accumulating}};
+  \node[fill=gray!15] (nd_m3_ky_han_0) at (-1.11,-0.34) {m3\_ky\_han\_0\\{\tiny zero\_divisor}};
+  \node[fill=red!35] (nd_m3_chia_0) at (-0.02,-1.86) {m3\_chia\_0\\{\tiny div\_by\_zero,violation}};
+  \node[fill=gray!15] (nd_m3_nhan_dong) at (0.26,-1.12) {m3\_nhan\_dong\\{\tiny multiplying}};
+  \draw (nd_m3_nhan_du_lieu) -- (nd_m3_dau_vao_hop_le);
+  \draw (nd_m3_nhan_du_lieu) -- (nd_m3_dau_vao_am);
+  \draw (nd_m3_nhan_du_lieu) -- (nd_m3_ky_han_0);
+  \draw (nd_m3_tong_am) -- (nd_m3_tong_am);
+  \draw (nd_m3_dau_vao_am) -- (nd_m3_tong_am);
+  \draw (nd_m3_tran_cong_don) -- (nd_m3_tran_cong_don);
+  \draw (nd_m3_dau_vao_hop_le) -- (nd_m3_nhan_dong);
+  \draw (nd_m3_tong_hop_le) -- (nd_m3_tong_hop_le);
+  \draw (nd_m3_tran_nhan) -- (nd_m3_tran_nhan);
+  \draw (nd_m3_cong_don) -- (nd_m3_tran_cong_don);
+  \draw (nd_m3_cong_don) -- (nd_m3_tong_hop_le);
+  \draw (nd_m3_ky_han_0) -- (nd_m3_chia_0);
+  \draw (nd_m3_chia_0) -- (nd_m3_chia_0);
+  \draw (nd_m3_nhan_dong) -- (nd_m3_cong_don);
+  \draw (nd_m3_nhan_dong) -- (nd_m3_tran_nhan);
+\end{tikzpicture}
+
+% M3-v1: kiểm tra miền + int64 + hạn mức
+\begin{tikzpicture}[
+  every node/.style={draw, circle, inner sep=2pt,
+      minimum size=8mm, align=center, font=\scriptsize},
+  ->, >=stealth, thick, auto
+]
+  \node[fill=blue!25] (nd_m3_nhan_du_lieu) at (1.70,0.58) {m3\_nhan\_du\_lieu\\{\tiny receiving}};
+  \node[fill=gray!15] (nd_m3_dau_vao_hop_le) at (1.47,-0.87) {m3\_dau\_vao\_hop\_le\\{\tiny input\_ok}};
+  \node[fill=gray!15] (nd_m3_tu_choi) at (-0.41,-1.92) {m3\_tu\_choi\\{\tiny done,input\_rejected}};
+  \node[fill=gray!15] (nd_m3_tong_hop_le) at (-2.20,1.28) {m3\_tong\_hop\_le\\{\tiny amount\_ok,done}};
+  \node[fill=gray!15] (nd_m3_cong_don) at (0.16,0.43) {m3\_cong\_don\\{\tiny accumulating}};
+  \node[fill=gray!15] (nd_m3_nhan_dong) at (-0.73,0.50) {m3\_nhan\_dong\\{\tiny multiplying}};
+  \draw (nd_m3_nhan_du_lieu) -- (nd_m3_tu_choi);
+  \draw (nd_m3_nhan_du_lieu) -- (nd_m3_dau_vao_hop_le);
+  \draw (nd_m3_dau_vao_hop_le) -- (nd_m3_nhan_dong);
+  \draw (nd_m3_tu_choi) -- (nd_m3_tu_choi);
+  \draw (nd_m3_tong_hop_le) -- (nd_m3_tong_hop_le);
+  \draw (nd_m3_cong_don) -- (nd_m3_tu_choi);
+  \draw (nd_m3_cong_don) -- (nd_m3_tong_hop_le);
+  \draw (nd_m3_nhan_dong) -- (nd_m3_cong_don);
+  \draw (nd_m3_nhan_dong) -- (nd_m3_tu_choi);
+\end{tikzpicture}

@@ -1,0 +1,28 @@
+-> Chuyển sang kiểm chứng trên luồng 'M6-v1: mutex + status CLOSED + explicit_bzero' (7 trang thai)
+Cong thuc 'AG(!race)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AG(!double_free)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AG(!use_after_free)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AG(!secret_residue)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AF(session_freed)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'EF(cb_locked)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_phien_mo'])
+Cong thuc 'AF(cb_locked)' -> SAI (thoa man tai: ['m6_cb_giu'])
+Cong thuc 'AG(!cb_locked)' -> SAI (thoa man tai: ['m6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'EG(!cb_locked)' -> DUNG (thoa man tai: ['m6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'EF(done)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AF(done)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AG(done)' -> SAI (thoa man tai: ['m6_da_dong', 'm6_den_sau_bo_qua'])
+Cong thuc 'AG(!done)' -> SAI (thoa man tai: [])
+Cong thuc 'EG(!done)' -> SAI (thoa man tai: [])
+Cong thuc 'EF(late_ignored)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AF(late_ignored)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AF(late_ignored)' -> DUNG (thoa man tai: ['m6_cb_giu', 'm6_da_dong', 'm6_den_sau_bo_qua', 'm6_giai_phong', 'm6_phien_mo', 'm6_to_giu', 'm6_xoa_trang'])
+Cong thuc 'AG(!late_ignored)' -> SAI (thoa man tai: [])
+Cong thuc 'EG(!late_ignored)' -> SAI (thoa man tai: [])
+Cong thuc 'AG(!late_ignored)' -> SAI (thoa man tai: [])
+Trạng thái deadlock (không có dịch chuyển đi ra): Không có
+[Mutual exclusion] AG(!(cb_locked & to_locked))
+   Trạng thái có nhãn 'cb_locked': ['m6_cb_giu']
+   Trạng thái có nhãn 'to_locked': ['m6_to_giu']
+   Trạng thái có CẢ HAI cùng lúc: (rỗng)
+=> Loại trừ lẫn nhau GIỮ ĐƯỢC? True | có thể vi phạm từ: []
+

@@ -1,0 +1,183 @@
+{
+  "title": "M4 — H4 Nhận callback (IPN) từ cổng thanh toán",
+  "description": "Dữ liệu đến từ BÊN NGOÀI (attack surface): độ dài txn_id, chữ ký, và nhánh ẩn do lập trình viên bỏ quên.",
+  "flows": {
+    "M4-v0: strcpy txn_id[20] + nhánh debug (CÓ LỖI)": {
+      "description": "strcpy(txn, cb->txn_id); if (merchant == 31337 && key == 8080) goto accept; if (!verify_hmac(cb)) reject;",
+      "states": [
+        "m4_nhan_callback",
+        "m4_txn_hop_le",
+        "m4_txn_qua_dai",
+        "m4_tran_txn",
+        "m4_kiem_chu_ky",
+        "m4_nhanh_an",
+        "m4_chu_ky_dung",
+        "m4_tu_choi",
+        "m4_chap_nhan"
+      ],
+      "initial": [
+        "m4_nhan_callback"
+      ],
+      "labeling": {
+        "m4_nhan_callback": [
+          "receiving"
+        ],
+        "m4_txn_hop_le": [
+          "len_ok"
+        ],
+        "m4_txn_qua_dai": [
+          "len_gt_cap"
+        ],
+        "m4_tran_txn": [
+          "buffer_overflow",
+          "violation"
+        ],
+        "m4_kiem_chu_ky": [
+          "verifying"
+        ],
+        "m4_nhanh_an": [
+          "hidden_bypass",
+          "violation"
+        ],
+        "m4_chu_ky_dung": [
+          "verified"
+        ],
+        "m4_tu_choi": [
+          "callback_rejected",
+          "done"
+        ],
+        "m4_chap_nhan": [
+          "accepted",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m4_nhan_callback",
+          "m4_txn_hop_le"
+        ],
+        [
+          "m4_nhan_callback",
+          "m4_txn_qua_dai"
+        ],
+        [
+          "m4_txn_qua_dai",
+          "m4_tran_txn"
+        ],
+        [
+          "m4_txn_hop_le",
+          "m4_kiem_chu_ky"
+        ],
+        [
+          "m4_txn_hop_le",
+          "m4_nhanh_an"
+        ],
+        [
+          "m4_kiem_chu_ky",
+          "m4_chu_ky_dung"
+        ],
+        [
+          "m4_kiem_chu_ky",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_chu_ky_dung",
+          "m4_chap_nhan"
+        ],
+        [
+          "m4_tran_txn",
+          "m4_tran_txn"
+        ],
+        [
+          "m4_nhanh_an",
+          "m4_nhanh_an"
+        ],
+        [
+          "m4_tu_choi",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_chap_nhan",
+          "m4_chap_nhan"
+        ]
+      ]
+    },
+    "M4-v1: kiểm tra độ dài, xóa nhánh ẩn": {
+      "description": "if (strnlen(cb->txn_id, 21) > 20) reject; if (!verify_hmac(cb)) reject; accept;",
+      "states": [
+        "m4_nhan_callback",
+        "m4_txn_hop_le",
+        "m4_kiem_chu_ky",
+        "m4_chu_ky_dung",
+        "m4_tu_choi",
+        "m4_chap_nhan"
+      ],
+      "initial": [
+        "m4_nhan_callback"
+      ],
+      "labeling": {
+        "m4_nhan_callback": [
+          "receiving"
+        ],
+        "m4_txn_hop_le": [
+          "len_ok"
+        ],
+        "m4_kiem_chu_ky": [
+          "verifying"
+        ],
+        "m4_chu_ky_dung": [
+          "verified"
+        ],
+        "m4_tu_choi": [
+          "callback_rejected",
+          "done"
+        ],
+        "m4_chap_nhan": [
+          "accepted",
+          "done"
+        ]
+      },
+      "transitions": [
+        [
+          "m4_nhan_callback",
+          "m4_txn_hop_le"
+        ],
+        [
+          "m4_nhan_callback",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_txn_hop_le",
+          "m4_kiem_chu_ky"
+        ],
+        [
+          "m4_kiem_chu_ky",
+          "m4_chu_ky_dung"
+        ],
+        [
+          "m4_kiem_chu_ky",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_chu_ky_dung",
+          "m4_chap_nhan"
+        ],
+        [
+          "m4_tu_choi",
+          "m4_tu_choi"
+        ],
+        [
+          "m4_chap_nhan",
+          "m4_chap_nhan"
+        ]
+      ]
+    }
+  },
+  "suggested_ctl_formulas": [
+    "AG(!buffer_overflow)",
+    "AG(!hidden_bypass)",
+    "AF(done)",
+    "EF(accepted)",
+    "EF(callback_rejected)"
+  ]
+}
