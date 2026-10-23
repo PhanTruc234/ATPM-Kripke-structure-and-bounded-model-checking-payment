@@ -1,0 +1,131 @@
+### ASan + UBSan trên thanhtoan.c — v1 — clang version 23.1.3 (https://github.com/llvm/llvm-project.git 0d261d1ca552c95a8f007e061c787ac7132fbcbc) — 23/10/2026 00:24
+
+===== ./tt_v1_asan 1 DH20261015000123
+H1 — v1 (ĐÃ SỬA) — strcpy mã đơn vào OrderRecord
+  sizeof(order_id)=17  offset total=20  offset ret=32   đầu vào: "DH20261015000123" (dài 16 ký tự = 17 byte kể cả '\0')
+
+  TRẠNG THÁI TRƯỚC lệnh copy (pc = dòng copy):
+    000000951850F3A0  +0  order_id     CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC 
+    000000951850F3B4  +20 total        28  76  07  00 
+    000000951850F3B8  +24 status       00  00  00  00 
+    000000951850F3C0  +32 ret          66  18  8A  57  F7  7F  00  00 
+    => total  = 489000 VND
+    => status = 0
+
+  TRẠNG THÁI SAU lệnh copy (byte đổi nằm trong [..]):
+    000000951850F3A0  +0  order_id    [44][48][32][30][32][36][31][30][31][35][30][30][30][31][32][33][00]
+    000000951850F3B4  +20 total        28  76  07  00 
+    000000951850F3B8  +24 status       00  00  00  00 
+    000000951850F3C0  +32 ret          66  18  8A  57  F7  7F  00  00 
+    => total  = 489000 VND
+    => status = 0
+
+  KẾT QUẢ: order_id = "DH20261015000123"
+----- mã thoát: 0
+
+===== ./tt_v1_asan 1 DH20261015000123-QUA-DAI
+H1 — v1 (ĐÃ SỬA) — strcpy mã đơn vào OrderRecord
+  sizeof(order_id)=17  offset total=20  offset ret=32   đầu vào: "DH20261015000123-QUA-DAI" (dài 24 ký tự = 25 byte kể cả '\0')
+
+  TRẠNG THÁI TRƯỚC lệnh copy (pc = dòng copy):
+    0000007376D2F7C0  +0  order_id     CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC 
+    0000007376D2F7D4  +20 total        28  76  07  00 
+    0000007376D2F7D8  +24 status       00  00  00  00 
+    0000007376D2F7E0  +32 ret          66  18  8A  57  F7  7F  00  00 
+    => total  = 489000 VND
+    => status = 0
+
+  TRẠNG THÁI SAU lệnh copy (byte đổi nằm trong [..]):
+    0000007376D2F7C0  +0  order_id     CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC 
+    0000007376D2F7D4  +20 total        28  76  07  00 
+    0000007376D2F7D8  +24 status       00  00  00  00 
+    0000007376D2F7E0  +32 ret          66  18  8A  57  F7  7F  00  00 
+    => total  = 489000 VND
+    => status = 0
+
+  KẾT QUẢ: mã đơn bị TỪ CHỐI (dài hơn 16 ký tự) — bộ nhớ không bị ghi
+----- mã thoát: 0
+
+===== ./tt_v1_asan 2 DH20261015000123
+H1 — v1 (ĐÃ SỬA) — parse_order_id (char buffer[17] cục bộ trên stack), đầu vào 17 byte kể cả '\0'
+  ASan: BẬT (vùng đỏ quanh buffer sẽ bắt byte ghi lố)
+  buffer = "DH20261015000123"
+  chạy xong
+----- mã thoát: 0
+
+===== ./tt_v1_asan 3 50000000 43
+H3 — v1 (ĐÃ SỬA) — cộng dồn tổng tiền 43 dòng
+  int64_t total = 0;  if (total + dong[i] > HAN_MUC) từ chối;  total += dong[i];
+    i=0   ô total (8 byte, little-endian): 80 F0 FA 02 00 00 00 00  ->       50000000   giá trị đúng =      50000000
+    i=1   ô total (8 byte, little-endian): 00 E1 F5 05 00 00 00 00  ->      100000000   giá trị đúng =     100000000
+    ...
+    i=40  total + dong[i] = 2050000000 > hạn mức 2000000000  => TỪ CHỐI đơn, không cộng
+
+  KẾT QUẢ: đơn bị từ chối an toàn; total giữ nguyên 2000000000 (= giá trị đúng)
+----- mã thoát: 0
+
+===== ./tt_v1_asan 4 CCCCT
+H6 — v1 (ĐÃ SỬA) — worker Callback (V=PAID) và worker Timeout (V=CANCELLED) cùng đóng 1 phiên
+  lịch chạy: CCCCT   (C/T = worker đó chạy 1 lệnh; hết lịch thì chạy nốt C rồi T)
+  ASan: BẬT
+
+  trạng thái đầu:
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=HỢP LỆ  | status=OPEN khóa=-  | card: CÒN số thẻ
+     C dòng 1: lock(&s->mtx);            
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=HỢP LỆ  | status=OPEN khóa=C  | card: CÒN số thẻ
+     C dòng 2: if (s->status == CLOSED) goto 7;
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=HỢP LỆ  | status=OPEN khóa=C  | card: CÒN số thẻ
+     C dòng 3: s->status = V;            
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=HỢP LỆ  | status=PAID khóa=C  | card: CÒN số thẻ
+     C dòng 4: explicit_bzero(s->card, 16);
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=HỢP LỆ  | status=PAID khóa=C  | card: đã xóa
+     T dòng 1: lock(&s->mtx);             => chờ (worker C đang giữ khóa)
+     C dòng 5: free(s->card);            
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=ĐÃ FREE  | status=PAID khóa=C
+     C dòng 6: s->status = CLOSED;       
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=C
+     C dòng 7: unlock(&s->mtx);          
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=-
+     T dòng 1: lock(&s->mtx);            
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=T
+     T dòng 2: if (s->status == CLOSED) goto 7; => phiên đã CLOSED, bỏ qua
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=T
+     T dòng 7: unlock(&s->mtx);          
+        heap:  s@000012953E2A0040(24B)=HỢP LỆ  card@000012933E2A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=-
+
+  KẾT QUẢ: 2 worker xong, không vi phạm bộ nhớ
+----- mã thoát: 0
+
+===== ./tt_v1_asan 4 CCTTTC
+H6 — v1 (ĐÃ SỬA) — worker Callback (V=PAID) và worker Timeout (V=CANCELLED) cùng đóng 1 phiên
+  lịch chạy: CCTTTC   (C/T = worker đó chạy 1 lệnh; hết lịch thì chạy nốt C rồi T)
+  ASan: BẬT
+
+  trạng thái đầu:
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=HỢP LỆ  | status=OPEN khóa=-  | card: CÒN số thẻ
+     C dòng 1: lock(&s->mtx);            
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=HỢP LỆ  | status=OPEN khóa=C  | card: CÒN số thẻ
+     C dòng 2: if (s->status == CLOSED) goto 7;
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=HỢP LỆ  | status=OPEN khóa=C  | card: CÒN số thẻ
+     T dòng 1: lock(&s->mtx);             => chờ (worker C đang giữ khóa)
+     T dòng 1: lock(&s->mtx);             => chờ (worker C đang giữ khóa)
+     T dòng 1: lock(&s->mtx);             => chờ (worker C đang giữ khóa)
+     C dòng 3: s->status = V;            
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=HỢP LỆ  | status=PAID khóa=C  | card: CÒN số thẻ
+     C dòng 4: explicit_bzero(s->card, 16);
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=HỢP LỆ  | status=PAID khóa=C  | card: đã xóa
+     C dòng 5: free(s->card);            
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=ĐÃ FREE  | status=PAID khóa=C
+     C dòng 6: s->status = CLOSED;       
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=C
+     C dòng 7: unlock(&s->mtx);          
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=-
+     T dòng 1: lock(&s->mtx);            
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=T
+     T dòng 2: if (s->status == CLOSED) goto 7; => phiên đã CLOSED, bỏ qua
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=T
+     T dòng 7: unlock(&s->mtx);          
+        heap:  s@000012AA571A0040(24B)=HỢP LỆ  card@000012A8571A0050(16B)=ĐÃ FREE  | status=CLOSED khóa=-
+
+  KẾT QUẢ: 2 worker xong, không vi phạm bộ nhớ
+----- mã thoát: 0

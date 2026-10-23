@@ -1,0 +1,60 @@
+Bài thực hành mẫu Chương 2 (softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c), chạy theo lệnh ở dòng 33 của
+softsec-toolkit/README.md, trên WSL Ubuntu, gcc 11.4.0. Nhóm 07 chạy và lưu ngày 21/10/2026.
+
+root@DESKTOP-89JTAJ9:/mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe# gcc -fsanitize=address -g -DDEMO_BUG -o /tmp/a 01_linked_list_uaf.c && /tmp/a
+=================================================================
+==2229==ERROR: AddressSanitizer: heap-use-after-free on address 0x502000000050 at pc 0x5d28308f7403 bp 0x7ffc89ff8b90 sp 0x7ffc89ff8b80
+READ of size 4 at 0x502000000050 thread T0
+    #0 0x5d28308f7402 in remove_first_buggy /mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c:26
+    #1 0x5d28308f75d2 in main /mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c:41
+    #2 0x794dea029d8f  (/lib/x86_64-linux-gnu/libc.so.6+0x29d8f)
+    #3 0x794dea029e3f in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x29e3f)
+    #4 0x5d28308f7204 in _start (/tmp/a+0x1204)
+
+0x502000000050 is located 0 bytes inside of 16-byte region [0x502000000050,0x502000000060)
+freed by thread T0 here:
+    #0 0x794dea4b4537 in __interceptor_free ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:127
+    #1 0x5d28308f73d3 in remove_first_buggy /mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c:25
+    #2 0x5d28308f75d2 in main /mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c:41
+    #3 0x794dea029d8f  (/lib/x86_64-linux-gnu/libc.so.6+0x29d8f)
+
+previously allocated by thread T0 here:
+    #0 0x794dea4b4887 in __interceptor_malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:145
+    #1 0x5d28308f72e5 in make_node /mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c:15
+    #2 0x5d28308f75a1 in main /mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c:40
+    #3 0x794dea029d8f  (/lib/x86_64-linux-gnu/libc.so.6+0x29d8f)
+
+SUMMARY: AddressSanitizer: heap-use-after-free /mnt/c/Users/Eco-mart/Desktop/AnToanPhanMem/softsec-toolkit/ch2_memsafe/01_linked_list_uaf.c:26 in remove_first_buggy
+Shadow bytes around the buggy address:
+  0x0a047fff7fb0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0a047fff7fc0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0a047fff7fd0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0a047fff7fe0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0a047fff7ff0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x0a047fff8000: fa fa 00 00 fa fa 00 00 fa fa[fd]fd fa fa fa fa
+  0x0a047fff8010: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0a047fff8020: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0a047fff8030: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0a047fff8040: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0a047fff8050: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+  Shadow gap:              cc
+==2229==ABORTING

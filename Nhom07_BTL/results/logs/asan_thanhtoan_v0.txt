@@ -1,0 +1,251 @@
+### ASan + UBSan trên thanhtoan.c — v0 — clang version 23.1.3 (https://github.com/llvm/llvm-project.git 0d261d1ca552c95a8f007e061c787ac7132fbcbc) — 23/10/2026 00:24
+
+===== ./tt_v0_asan 1 DH20261015000123
+H1 — v0 (CÓ LỖI) — strcpy mã đơn vào OrderRecord
+  sizeof(order_id)=16  offset total=16  offset ret=24   đầu vào: "DH20261015000123" (dài 16 ký tự = 17 byte kể cả '\0')
+
+  TRẠNG THÁI TRƯỚC lệnh copy (pc = dòng copy):
+    000000EE570FF8E0  +0  order_id     CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC 
+    000000EE570FF8F0  +16 total        28  76  07  00 
+    000000EE570FF8F4  +20 status       00  00  00  00 
+    000000EE570FF8F8  +24 ret          66  18  C9  7E  F6  7F  00  00 
+    => total  = 489000 VND
+    => status = 0
+
+  TRẠNG THÁI SAU lệnh copy (byte đổi nằm trong [..]):
+    000000EE570FF8E0  +0  order_id    [44][48][32][30][32][36][31][30][31][35][30][30][30][31][32][33]
+    000000EE570FF8F0  +16 total       [00] 76  07  00 
+    000000EE570FF8F4  +20 status       00  00  00  00 
+    000000EE570FF8F8  +24 ret          66  18  C9  7E  F6  7F  00  00 
+    => total  = 488960 VND   <-- KHÁC 489000: TIỀN ĐƠN HÀNG ĐÃ BỊ ĐỔI (mất độ chính xác)
+    => status = 0
+
+  KẾT QUẢ: order_id = "DH20261015000123"
+----- mã thoát: 0
+
+===== ./tt_v0_asan 1 DH20261015000123-QUA-DAI
+H1 — v0 (CÓ LỖI) — strcpy mã đơn vào OrderRecord
+  sizeof(order_id)=16  offset total=16  offset ret=24   đầu vào: "DH20261015000123-QUA-DAI" (dài 24 ký tự = 25 byte kể cả '\0')
+
+  TRẠNG THÁI TRƯỚC lệnh copy (pc = dòng copy):
+    0000004F3D2FFB00  +0  order_id     CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC  CC 
+    0000004F3D2FFB10  +16 total        28  76  07  00 
+    0000004F3D2FFB14  +20 status       00  00  00  00 
+    0000004F3D2FFB18  +24 ret          66  18  C9  7E  F6  7F  00  00 
+    => total  = 489000 VND
+    => status = 0
+
+  TRẠNG THÁI SAU lệnh copy (byte đổi nằm trong [..]):
+    0000004F3D2FFB00  +0  order_id    [44][48][32][30][32][36][31][30][31][35][30][30][30][31][32][33]
+    0000004F3D2FFB10  +16 total       [2D][51][55][41]
+    0000004F3D2FFB14  +20 status      [2D][44][41][49]
+    0000004F3D2FFB18  +24 ret         [00] 18  C9  7E  F6  7F  00  00 
+    => total  = 1096110381 VND   <-- KHÁC 489000: TIỀN ĐƠN HÀNG ĐÃ BỊ ĐỔI (mất độ chính xác)
+    => status = 1229014061   <-- trạng thái đơn bị ghi đè
+
+  KẾT QUẢ: order_id = "DH20261015000123-QUA-DAI"
+  !! ô địa chỉ trả về đã bị đổi: lệnh return sẽ nhảy tới 0x00007ff67ec91800
+----- mã thoát: 0
+
+===== ./tt_v0_asan 2 DH20261015000123
+H1 — v0 (CÓ LỖI) — parse_order_id (char buffer[16] cục bộ trên stack), đầu vào 17 byte kể cả '\0'
+  ASan: BẬT (vùng đỏ quanh buffer sẽ bắt byte ghi lố)
+=================================================================
+==19468==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x00f6009dfab0 at pc 0x7ffd23ca8f7d bp 0x00f6009df1c0 sp 0x00f6009df208
+WRITE of size 17 at 0x00f6009dfab0 thread T0
+    #0 0x7ffd23ca8f7c in strcpy /home/runner/work/llvm-mingw/llvm-mingw/llvm-project/compiler-rt/lib/asan/asan_interceptors.cpp:642:5
+    #1 0x7ff67ec948f3 in parse_order_id E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:168:5
+    #2 0x7ff67ec9278e in ca_h1_stack E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:187:5
+    #3 0x7ff67ec918b8 in main E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:413:20
+    #4 0x7ff67ec9110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #5 0x7ffe0a42dda6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #6 0x7ffe0c6fee4b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+Address 0x00f6009dfab0 is located in stack of thread T0 at offset 48 in frame
+    #0 0x7ff67ec94827 in parse_order_id E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:165
+
+  This frame has 1 object(s):
+    [32, 48) 'buffer' (line 167) <== Memory access at offset 48 overflows this variable
+HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+      (longjmp, SEH and C++ exceptions *are* supported)
+SUMMARY: AddressSanitizer: stack-buffer-overflow E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:168:5 in parse_order_id
+Shadow bytes around the buggy address:
+  0x00f6009df800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x00f6009df880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x00f6009df900: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x00f6009df980: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x00f6009dfa00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x00f6009dfa80: f1 f1 f1 f1 00 00[f3]f3 00 00 00 00 00 00 00 00
+  0x00f6009dfb00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x00f6009dfb80: 00 00 00 00 f1 f1 f1 f1 f8 f3 f3 f3 00 00 00 00
+  0x00f6009dfc00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x00f6009dfc80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x00f6009dfd00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==19468==ABORTING
+----- mã thoát: 1
+
+===== ./tt_v0_asan 3 50000000 43
+H3 — v0 (CÓ LỖI) — cộng dồn tổng tiền 43 dòng
+  int32_t total = 0;  for (i...) total += dong[i];     (miền int32: -2147483648 .. 2147483647)
+    i=0   ô total (4 byte, little-endian): 80 F0 FA 02  ->       50000000   giá trị đúng =      50000000
+    i=1   ô total (4 byte, little-endian): 00 E1 F5 05  ->      100000000   giá trị đúng =     100000000
+    ...
+    i=41  ô total (4 byte, little-endian): 00 75 2B 7D  ->     2100000000   giá trị đúng =    2100000000
+thanhtoan.c:215:15: runtime error: signed integer overflow: 2100000000 + 50000000 cannot be represented in type 'int32_t' (aka 'int')
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior thanhtoan.c:215:15 
+    i=42  ô total (4 byte, little-endian): 80 65 26 80  ->    -2144967296   giá trị đúng =    2150000000   <-- MẤT ĐỘ CHÍNH XÁC
+
+  KẾT QUẢ: total = -2144967296 VND, đúng ra phải là 2150000000 VND  => SỐ TIỀN SAI
+----- mã thoát: 0
+
+===== ./tt_v0_asan 4 CCCCT
+H6 — v0 (CÓ LỖI) — worker Callback (V=PAID) và worker Timeout (V=CANCELLED) cùng đóng 1 phiên
+  lịch chạy: CCCCT   (C/T = worker đó chạy 1 lệnh; hết lịch thì chạy nốt C rồi T)
+  ASan: BẬT
+
+  trạng thái đầu:
+        heap:  s@00001271A10A0040(24B)=HỢP LỆ  card@0000126FA10A0050(16B)=HỢP LỆ  | status=OPEN khóa=-  | card: CÒN số thẻ
+     C dòng 1: s->status = V;            
+        heap:  s@00001271A10A0040(24B)=HỢP LỆ  card@0000126FA10A0050(16B)=HỢP LỆ  | status=PAID khóa=-  | card: CÒN số thẻ
+     C dòng 2: memset(s->card, 0, 16);   
+        heap:  s@00001271A10A0040(24B)=HỢP LỆ  card@0000126FA10A0050(16B)=HỢP LỆ  | status=PAID khóa=-  | card: đã xóa
+     C dòng 3: free(s->card);            
+        heap:  s@00001271A10A0040(24B)=HỢP LỆ  card@0000126FA10A0050(16B)=ĐÃ FREE  | status=PAID khóa=-
+     C dòng 4: free(s);                  
+        heap:  s@00001271A10A0040(24B)=ĐÃ FREE  card@0000126FA10A0050(16B)=ĐÃ FREE
+     T dòng 1: s->status = V;             => TRUY CẬP (use-after-free) trên vùng ĐÃ FREE
+        (ASan bật: chạy thật lệnh này để ASan báo cáo)
+=================================================================
+==22576==ERROR: AddressSanitizer: heap-use-after-free on address 0x1271a10a0040 at pc 0x7ff67ec96078 bp 0x007ea535f160 sp 0x007ea535f1a8
+WRITE of size 4 at 0x1271a10a0040 thread T0
+    #0 0x7ff67ec96077 in buoc E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:334:65
+    #1 0x7ff67ec93505 in ca_h6 E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:379:13
+    #2 0x7ff67ec91fbb in main E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:433:20
+    #3 0x7ff67ec9110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #4 0x7ffe0a42dda6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #5 0x7ffe0c6fee4b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+0x1271a10a0040 is located 0 bytes inside of 24-byte region [0x1271a10a0040,0x1271a10a0058)
+freed by thread T0 here:
+    #0 0x7ffd23cad861 in free /home/runner/work/llvm-mingw/llvm-mingw/llvm-project/compiler-rt/lib/asan/asan_malloc_win.cpp:78:3
+    #1 0x7ff67ec962d4 in buoc E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:337:73
+    #2 0x7ff67ec93505 in ca_h6 E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:379:13
+    #3 0x7ff67ec91fbb in main E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:433:20
+    #4 0x7ff67ec9110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #5 0x7ffe0a42dda6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #6 0x7ffe0c6fee4b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+previously allocated by thread T0 here:
+    #0 0x7ffd23cada86 in calloc /home/runner/work/llvm-mingw/llvm-mingw/llvm-project/compiler-rt/lib/asan/asan_malloc_win.cpp:98:3
+    #1 0x7ff67ec94c3b in cap_phat E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:262:15
+    #2 0x7ff67ec93094 in ca_h6 E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:366:25
+    #3 0x7ff67ec91fbb in main E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:433:20
+    #4 0x7ff67ec9110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #5 0x7ffe0a42dda6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #6 0x7ffe0c6fee4b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+SUMMARY: AddressSanitizer: heap-use-after-free E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:334:65 in buoc
+Shadow bytes around the buggy address:
+  0x1271a109fd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1271a109fe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1271a109fe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1271a109ff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x1271a109ff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x1271a10a0000: fa fa 00 00 00 00 fa fa[fd]fd fd fa fa fa fa fa
+  0x1271a10a0080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1271a10a0100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1271a10a0180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1271a10a0200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1271a10a0280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==22576==ABORTING
+----- mã thoát: 1
+
+===== ./tt_v0_asan 4 CCTTTC
+H6 — v0 (CÓ LỖI) — worker Callback (V=PAID) và worker Timeout (V=CANCELLED) cùng đóng 1 phiên
+  lịch chạy: CCTTTC   (C/T = worker đó chạy 1 lệnh; hết lịch thì chạy nốt C rồi T)
+  ASan: BẬT
+
+  trạng thái đầu:
+        heap:  s@000011AEBC5A0040(24B)=HỢP LỆ  card@000011ACBC5A0050(16B)=HỢP LỆ  | status=OPEN khóa=-  | card: CÒN số thẻ
+     C dòng 1: s->status = V;            
+        heap:  s@000011AEBC5A0040(24B)=HỢP LỆ  card@000011ACBC5A0050(16B)=HỢP LỆ  | status=PAID khóa=-  | card: CÒN số thẻ
+     C dòng 2: memset(s->card, 0, 16);   
+        heap:  s@000011AEBC5A0040(24B)=HỢP LỆ  card@000011ACBC5A0050(16B)=HỢP LỆ  | status=PAID khóa=-  | card: đã xóa
+     T dòng 1: s->status = V;            
+        heap:  s@000011AEBC5A0040(24B)=HỢP LỆ  card@000011ACBC5A0050(16B)=HỢP LỆ  | status=CANCELLED khóa=-  | card: đã xóa
+     T dòng 2: memset(s->card, 0, 16);   
+        heap:  s@000011AEBC5A0040(24B)=HỢP LỆ  card@000011ACBC5A0050(16B)=HỢP LỆ  | status=CANCELLED khóa=-  | card: đã xóa
+     T dòng 3: free(s->card);            
+        heap:  s@000011AEBC5A0040(24B)=HỢP LỆ  card@000011ACBC5A0050(16B)=ĐÃ FREE  | status=CANCELLED khóa=-
+     C dòng 3: free(s->card);             => FREE LẦN 2 (double free) trên vùng ĐÃ FREE
+        (ASan bật: chạy thật lệnh này để ASan báo cáo)
+=================================================================
+==26556==ERROR: AddressSanitizer: attempting double-free on 0x11acbc5a0050 in thread T0:
+    #0 0x7ffd23cad861 in free /home/runner/work/llvm-mingw/llvm-mingw/llvm-project/compiler-rt/lib/asan/asan_malloc_win.cpp:78:3
+    #1 0x7ff67ec9627d in buoc E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:336:108
+    #2 0x7ff67ec93505 in ca_h6 E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:379:13
+    #3 0x7ff67ec91fbb in main E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:433:20
+    #4 0x7ff67ec9110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #5 0x7ffe0a42dda6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #6 0x7ffe0c6fee4b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+0x11acbc5a0050 is located 0 bytes inside of 16-byte region [0x11acbc5a0050,0x11acbc5a0060)
+freed by thread T0 here:
+    #0 0x7ffd23cad861 in free /home/runner/work/llvm-mingw/llvm-mingw/llvm-project/compiler-rt/lib/asan/asan_malloc_win.cpp:78:3
+    #1 0x7ff67ec9627d in buoc E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:336:108
+    #2 0x7ff67ec93505 in ca_h6 E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:379:13
+    #3 0x7ff67ec91fbb in main E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:433:20
+    #4 0x7ff67ec9110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #5 0x7ffe0a42dda6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #6 0x7ffe0c6fee4b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+previously allocated by thread T0 here:
+    #0 0x7ffd23cada86 in calloc /home/runner/work/llvm-mingw/llvm-mingw/llvm-project/compiler-rt/lib/asan/asan_malloc_win.cpp:98:3
+    #1 0x7ff67ec94c3b in cap_phat E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:262:15
+    #2 0x7ff67ec930b4 in ca_h6 E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:367:18
+    #3 0x7ff67ec91fbb in main E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:433:20
+    #4 0x7ff67ec9110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #5 0x7ffe0a42dda6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #6 0x7ffe0c6fee4b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+SUMMARY: AddressSanitizer: double-free E:/AnToanPhanMem/Nhom07_BTL/source/kiem_chung_bo_nho/thanhtoan.c:336:108 in buoc
+==26556==ABORTING
+----- mã thoát: 1
