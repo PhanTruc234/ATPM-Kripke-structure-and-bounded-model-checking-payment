@@ -1,0 +1,56 @@
+KẾT QUẢ KỲ VỌNG khi dùng SecLabFramework với phần kiểm chứng mức bộ nhớ (ngày 22/10/2026).
+Tạo (với hỗ trợ của AI) bằng cách chạy CHÍNH các module core.kripke, core.memory_analyzer, core.static_smt
+lấy từ SecLabFramework.exe, ngoài giao diện — chỉ để đối chiếu. Bằng chứng chính thức là ảnh/console nhóm tự chạy trên giao diện.
+
+########## Tab Ch1 — nạp source/spec/mo_hinh_bo_nho/H1_stack.json và H6_heap.json
+#### H1_stack.json — 3 luồng
+== H1-v0: mã SpecVerificationLab sinh từ đặc tả v0 — char buffer[16] + st  |S|=401 |R|=425  deadlock=không
+   AG(!buffer_overflow)=VI PHẠM  AG(!off_by_one)=VI PHẠM  AG(!ret_overwritten)=VI PHẠM  AG(!control_hijack)=VI PHẠM  AG(!oob_read)=VI PHẠM  AG(!truncated)=ĐÚNG  AG(!violation)=VI PHẠM  AF(flow_end)=VI PHẠM  EF(copied_ok)=ĐÚNG  EF(input_rejected)=VI PHẠM
+== H1-v1-SVL: mã SpecVerificationLab sinh từ đặc tả v1 — char buffer[17]   |S|=501 |R|=525  deadlock=không
+   AG(!buffer_overflow)=ĐÚNG  AG(!off_by_one)=ĐÚNG  AG(!ret_overwritten)=ĐÚNG  AG(!control_hijack)=ĐÚNG  AG(!oob_read)=ĐÚNG  AG(!truncated)=VI PHẠM  AG(!violation)=VI PHẠM  AF(flow_end)=ĐÚNG  EF(copied_ok)=ĐÚNG  EF(input_rejected)=VI PHẠM
+== H1-v1-nhóm: bản sửa của nhóm (M1-v1b) — buffer[17] + strnlen + từ chối  |S|=263 |R|=287  deadlock=không
+   AG(!buffer_overflow)=ĐÚNG  AG(!off_by_one)=ĐÚNG  AG(!ret_overwritten)=ĐÚNG  AG(!control_hijack)=ĐÚNG  AG(!oob_read)=ĐÚNG  AG(!truncated)=ĐÚNG  AG(!violation)=ĐÚNG  AF(flow_end)=ĐÚNG  EF(copied_ok)=ĐÚNG  EF(input_rejected)=ĐÚNG
+#### H6_heap.json — 3 luồng
+== H6-v0: không khóa, memset rồi free (CÓ LỖI) — mã của M6-v0  |S|=137 |R|=208  deadlock=không
+   AG(!race)=VI PHẠM  AG(!double_free)=VI PHẠM  AG(!use_after_free)=VI PHẠM  AG(!secret_residue)=VI PHẠM  AG(!violation)=VI PHẠM  AF(session_freed)=VI PHẠM  EF(cb_locked)=ĐÚNG  EF(to_locked)=ĐÚNG
+   mutex: VI PHẠM (False)
+== H6-v1a: CHỈ thêm mutex (phiên s do bộ quản lý phiên giải phóng sau khi  |S|=45 |R|=60  deadlock=không
+   AG(!race)=ĐÚNG  AG(!double_free)=ĐÚNG  AG(!use_after_free)=VI PHẠM  AG(!secret_residue)=VI PHẠM  AG(!violation)=VI PHẠM  AF(session_freed)=VI PHẠM  EF(cb_locked)=ĐÚNG  EF(to_locked)=ĐÚNG
+   mutex: ĐÚNG (True)
+== H6-v1b: bản sửa của nhóm — mutex + kiểm tra CLOSED + explicit_bzero —   |S|=29 |R|=37  deadlock=không
+   AG(!race)=ĐÚNG  AG(!double_free)=ĐÚNG  AG(!use_after_free)=ĐÚNG  AG(!secret_residue)=ĐÚNG  AG(!violation)=ĐÚNG  AF(session_freed)=ĐÚNG  EF(cb_locked)=ĐÚNG  EF(to_locked)=ĐÚNG
+   mutex: ĐÚNG (True)
+
+########## Tab Ch2 — Phân tích Struct Alignment + Quét lỗi con trỏ trên source/kiem_chung_bo_nho/thanhtoan.c
+struct OrderRecord {  // size=24, align=4, padding=0 bytes
+    offset   0: char order_id[16];  // size=16, align=1
+    offset  16: int total;  // size=4, align=4
+    offset  20: int status;  // size=4, align=4
+};
+struct OrderRecordV1 {  // size=28, align=4, padding=3 bytes
+    offset   0: char order_id[17];  // size=17, align=1
+    offset  20: int total;  // size=4, align=4
+    offset  24: int status;  // size=4, align=4
+};
+struct PaymentSession {  // size=24, align=8, padding=8 bytes
+    offset   0: int status;  // size=4, align=4
+    offset   8: char* card;  // size=8, align=8
+    offset  16: int khoa;  // size=4, align=4
+};
+analyze_struct lỗi: ValueError Kiểu dữ liệu không được hỗ trợ: 'int32_t'
+
+--- check_c_source(thanhtoan.c) ---
+Phát hiện 5 vấn đề:
+  [dong  103] HIGH   dangerous-function Sử dụng hàm không an toàn 'strcpy()' — dễ gây buffer overflow. Goi y: dung strncpy thay the.
+  [dong  168] HIGH   dangerous-function Sử dụng hàm không an toàn 'strcpy()' — dễ gây buffer overflow. Goi y: dung strncpy thay the.
+  [dong  261] MEDIUM memory-leak      Con trỏ 'p' được cấp phát (malloc/calloc/realloc) nhưng không thấy free() trong hàm cap_phat() — nghi ngờ rò rỉ bộ nhớ
+  [dong  333] HIGH   use-after-free   Khả năng sử dụng con trỏ 's' sau khi free() (freed tại dòng 328) trong hàm buoc()
+  [dong  339] HIGH   use-after-free   Khả năng sử dụng con trỏ 's' sau khi free() (freed tại dòng 336) trong hàm buoc()
+
+########## Tab Ch3 — SMT/SAT/Z3 nâng cao và BMC unroll
+[Validity] not (total >= 0 and x >= 0 and x <= 50000000) or total + x >= 0   với total,x:int -> SMTResult(status='valid', model=None)
+[Validity] not (total >= 0 and x >= 0 and x <= 50000000) or total + x >= 0   với total,x:bitvec32 -> SMTResult(status='invalid', model={'total': 2146304000, 'x': 49938432})
+[SAT đa kiểu bitvec32] total >= 0 and x >= 0 and x <= 50000000 and total + x < 0 -> SMTResult(status='sat', model={'total': 2146304000, 'x': 49938432})
+[Overflow chính xác] total + x, bitvec32 có dấu -> SMTResult(status='sat', model={'total': -1073741857, 'x': -2147483613})
+[Overflow int32 (Int)] price * qty -> ('sat', {'price': 2147483647, 'qty': -2})
+[BMC unroll] -> True 43 {'i': 43, 'total': 2150000000} | trace cuối: [{'i': 42, 'total': 2100000000}, {'i': 43, 'total': 2150000000}]
